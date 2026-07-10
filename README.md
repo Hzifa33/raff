@@ -174,8 +174,7 @@ certutil -hashfile Raf_Portable_0.3.0.zip SHA256
 قيمة SHA256 لهذا الإصدار:
 
 ```text
-ضع_قيمة_SHA256_هنا
-```
+222162d2b326516b9f037690cc4e8d67da44f35150e4164493386d6c9b40ae9c```
 
 ---
 
