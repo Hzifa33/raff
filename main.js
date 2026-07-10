@@ -1,0 +1,114 @@
+'use strict';
+
+const { app, BrowserWindow, ipcMain, shell, dialog, Menu } = require('electron');
+const path = require('path');
+const Store = require('./src/js/store');
+
+let mainWindow = null;
+let store = null;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1440,
+    height: 900,
+    minWidth: 1100,
+    minHeight: 700,
+    backgroundColor: '#2B1B12',
+    show: false,
+    icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+
+  Menu.setApplicationMenu(null);
+
+  mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
+
+  // Any external link (like the developer credit) opens in the OS browser,
+  // never inside the app window.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+}
+
+app.whenReady().then(() => {
+  store = new Store(app.getPath('userData'));
+
+  // ---- IPC: Library data ----
+  ipcMain.handle('lib:getAll', () => store.getAll());
+  ipcMain.handle('lib:add', (_e, book) => store.addBook(book));
+  ipcMain.handle('lib:update', (_e, id, patch) => store.updateBook(id, patch));
+  ipcMain.handle('lib:remove', (_e, id) => store.removeBook(id));
+  ipcMain.handle('lib:stats', () => store.getStats());
+  ipcMain.handle('lib:meta', () => store.getMeta());
+
+  // ---- IPC: Backup / restore ----
+  ipcMain.handle('lib:exportJson', async () => {
+    const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+      title: 'حفظ نسخة احتياطية',
+      defaultPath: `raff-backup-${new Date().toISOString().slice(0, 10)}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
+    if (canceled || !filePath) return { ok: false };
+    store.exportJson(filePath);
+    return { ok: true, filePath };
+  });
+
+  ipcMain.handle('lib:exportCsv', async () => {
+    const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+      title: 'تصدير كملف CSV',
+      defaultPath: `raff-library-${new Date().toISOString().slice(0, 10)}.csv`,
+      filters: [{ name: 'CSV', extensions: ['csv'] }],
+    });
+    if (canceled || !filePath) return { ok: false };
+    store.exportCsv(filePath);
+    return { ok: true, filePath };
+  });
+
+  ipcMain.handle('lib:importJson', async () => {
+    const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
+      title: 'استيراد نسخة احتياطية',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      properties: ['openFile'],
+    });
+    if (canceled || !filePaths.length) return { ok: false };
+    try {
+      const result = store.importJson(filePaths[0]);
+      return { ok: true, ...result };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('lib:resetAll', () => {
+    store.resetAll();
+    return { ok: true };
+  });
+
+  ipcMain.handle('app:openExternal', (_e, url) => {
+    if (typeof url === 'string' && /^https?:\/\//.test(url)) {
+      shell.openExternal(url);
+    }
+  });
+
+  ipcMain.handle('app:getVersion', () => app.getVersion());
+
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
