@@ -9,58 +9,36 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-/**
- * Normalizes Arabic text for forgiving search matching:
- * - strips diacritics (tashkeel) and the tatweel elongation mark
- * - unifies alef forms (أ إ آ ٱ) to ا
- * - unifies ta marbuta (ة) with ha (ه)
- * - unifies alef maqsura (ى) with ya (ي)
- * - unifies hamza-carrying waw/ya (ؤ ئ) with their base letter
- * So searching "ا" also matches "أ", "إ", "آ", and so on across the text.
- */
-function normalizeArabic(str) {
-  return (str ?? '').toString()
-    .replace(/[\u064B-\u0652\u0670\u06D6-\u06ED\u0640]/g, '') // tashkeel + tatweel
-    .replace(/[أإآٱ]/g, 'ا')
-    .replace(/ة/g, 'ه')
-    .replace(/ى/g, 'ي')
-    .replace(/ؤ/g, 'و')
-    .replace(/ئ/g, 'ي')
-    .toLowerCase()
-    .trim();
-}
-
-function bookMatchesQuery(book, query, field) {
-  if (!query) return true;
-  const q = normalizeArabic(query);
-  const hay = {
-    all: [book.title, book.author, book.publisher, book.referenceNumber, book.category].join(' '),
-    title: book.title,
-    author: book.author,
-    publisher: book.publisher,
-    referenceNumber: book.referenceNumber,
-    category: book.category,
-  };
-  return normalizeArabic(hay[field] || hay.all).includes(q);
-}
-
 function sortBooks(books, sortKey) {
   const arr = [...books];
   switch (sortKey) {
-    case 'title-asc': return arr.sort((a, b) => a.title.localeCompare(b.title, 'ar'));
-    case 'author-asc': return arr.sort((a, b) => a.author.localeCompare(b.author, 'ar'));
-    case 'oldest': return arr.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    case 'oldest': return arr.sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
     case 'newest':
-    default: return arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    default: return arr.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   }
+}
+
+function statusBadgeHtml(book) {
+  const status = RaffBook.bookStatus(book);
+  const cls = status === RaffBook.STATUS_AVAILABLE ? 'badge-available'
+    : status === RaffBook.STATUS_PARTIAL ? 'badge-partial'
+    : 'badge-borrowed';
+  return `<span class="badge ${cls}">${status}</span>`;
+}
+
+function copiesMeterHtml(book) {
+  const total = RaffBook.totalCopies(book);
+  const avail = RaffBook.availableCopies(book);
+  const pct = total ? (avail / total) * 100 : 0;
+  return `
+    <div class="copies-cell" title="${avail} متاحة من ${total}">
+      <div class="copies-text"><strong>${avail}</strong> / ${total}</div>
+      <div class="copies-track"><div class="copies-fill" style="width:${pct}%;"></div></div>
+    </div>`;
 }
 
 function renderBookRow(book) {
   const spine = spineColorFor(book.category || book.author);
-  const statusBadge = book.status === 'معار'
-    ? `<span class="badge badge-borrowed">معار</span>`
-    : `<span class="badge badge-available">متاح</span>`;
-
   return `
     <div class="book-row" data-id="${book.id}" data-action="details" role="button" tabindex="0">
       <div class="spine" style="background:${spine};"></div>
@@ -80,10 +58,8 @@ function renderBookRow(book) {
         <span class="book-meta-label">المجال</span>
         <span class="book-meta-value">${escapeHtml(book.category) || '—'}</span>
       </div>
-      <div class="book-status-cell">
-        ${statusBadge}
-        ${book.status === 'معار' && book.borrowerName ? `<span class="borrower-name">${escapeHtml(book.borrowerName)}</span>` : ''}
-      </div>
+      ${copiesMeterHtml(book)}
+      <div class="book-status-cell">${statusBadgeHtml(book)}</div>
       <div class="row-actions">
         <button class="btn btn-outline btn-icon" data-action="edit" data-id="${book.id}" title="تعديل" aria-label="تعديل">${icon('edit')}</button>
         <button class="btn btn-outline btn-icon" data-action="delete" data-id="${book.id}" title="حذف" aria-label="حذف">${icon('trash')}</button>
@@ -126,14 +102,45 @@ async function deleteBookWithUndo(book) {
 /* =========================================================
    Book details modal
    ========================================================= */
-function showBookDetails(book) {
+function showBookDetails(bookId) {
+  const book = RAFF_STATE.books.find((b) => b.id === bookId);
+  if (!book) return;
+
   const spine = spineColorFor(book.category || book.author);
-  const row = (label, value, iconName) => value
+  const total = RaffBook.totalCopies(book);
+  const avail = RaffBook.availableCopies(book);
+  const loans = [...(book.loans || [])].sort(
+    (a, b) => Date.parse(b.borrowedAt) - Date.parse(a.borrowedAt)
+  );
+  const openLoans = loans.filter((l) => !l.returnedAt);
+  const canBorrow = RaffBook.canBorrow(book);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const metaRow = (label, value, iconName) => value
     ? `<div class="detail-row">
          <span class="detail-label">${icon(iconName)} ${label}</span>
          <span class="detail-value">${escapeHtml(value)}</span>
        </div>`
     : '';
+
+  const loanRow = (l) => {
+    const days = RaffBook.loanDurationDays(l);
+    const overdue = RaffBook.isOverdue(l, 30);
+    return `
+      <div class="loan-row ${l.returnedAt ? 'is-returned' : overdue ? 'is-overdue' : ''}">
+        <div class="loan-who">
+          <span class="loan-name">${escapeHtml(l.borrowerName)}</span>
+          <span class="loan-dates">
+            ${reportFormatDate(l.borrowedAt)}
+            ${l.returnedAt ? ` ← ${reportFormatDate(l.returnedAt)}` : ''}
+          </span>
+        </div>
+        <span class="loan-days ${overdue ? 'overdue' : ''}">${days} يوم</span>
+        ${l.returnedAt
+          ? `<span class="loan-state returned">أُرجع</span>`
+          : `<button class="btn btn-outline btn-sm" data-return-loan="${l.id}">${icon('refresh')} إرجاع</button>`}
+      </div>`;
+  };
 
   const html = `
     <div class="detail-header" style="border-top: 4px solid ${spine};">
@@ -144,32 +151,52 @@ function showBookDetails(book) {
       <button class="btn btn-ghost btn-icon" id="detailClose" aria-label="إغلاق">${icon('x')}</button>
     </div>
     <div class="modal-body">
-      <div class="detail-ref">
-        <span class="detail-ref-label">الرقم المرجعي</span>
-        <span class="detail-ref-value">${escapeHtml(book.referenceNumber)}</span>
+      <div class="detail-topline">
+        <div class="detail-ref">
+          <span class="detail-ref-label">الرقم المرجعي</span>
+          <span class="detail-ref-value">${escapeHtml(book.referenceNumber)}</span>
+        </div>
+        <div class="availability-card ${avail === 0 ? 'is-none' : avail < total ? 'is-partial' : 'is-full'}">
+          <div class="availability-head">
+            <span class="availability-count"><strong>${avail}</strong> من ${total}</span>
+            ${statusBadgeHtml(book)}
+          </div>
+          <div class="copies-track"><div class="copies-fill" style="width:${total ? (avail / total) * 100 : 0}%;"></div></div>
+          <div class="availability-note">${avail > 0 ? 'نسخ متاحة للإعارة الآن' : 'كل النسخ معارة حالياً'}</div>
+        </div>
       </div>
 
       <div class="detail-grid">
-        ${row('دار النشر', book.publisher, 'building')}
-        ${row('المجال / التصنيف', book.category, 'tag')}
-        ${row('الطبعة', book.edition, 'layers')}
-        ${row('سنة النشر', book.publishYear, 'calendar')}
-        ${row('عدد النسخ', String(book.copiesTotal), 'copies')}
-        <div class="detail-row">
-          <span class="detail-label">${icon('check')} الحالة</span>
-          <span class="detail-value">
-            ${book.status === 'معار'
-              ? `<span class="badge badge-borrowed">معار</span>${book.borrowerName ? ' <span class="borrower-name">' + escapeHtml(book.borrowerName) + '</span>' : ''}`
-              : `<span class="badge badge-available">متاح</span>`}
-          </span>
-        </div>
+        ${metaRow('دار النشر', book.publisher, 'building')}
+        ${metaRow('المجال / التصنيف', book.category, 'tag')}
+        ${metaRow('الطبعة', book.edition, 'layers')}
+        ${metaRow('سنة النشر', book.publishYear, 'calendar')}
       </div>
 
       ${book.notes ? `<div class="detail-notes"><span class="detail-label">${icon('note')} ملاحظات</span><p>${escapeHtml(book.notes)}</p></div>` : ''}
 
-      <div class="form-actions" style="position:static; margin:18px 0 0; padding:14px 0 0; border-radius:0;">
-        <button class="btn btn-primary" id="detailEdit">${icon('edit')} تعديل البيانات</button>
-        <button class="btn btn-outline" id="detailCopyRef">${icon('hash')} نسخ الرقم المرجعي</button>
+      <div class="loans-section">
+        <div class="loans-head">
+          <h4 class="loans-title">${icon('user')} سجل الإعارة <span class="loans-count">${openLoans.length} مفتوحة من ${loans.length}</span></h4>
+        </div>
+
+        <div class="borrow-form ${canBorrow ? '' : 'disabled'}">
+          <div class="ac-anchor borrow-name-wrap">
+            <input type="text" id="borrowName" placeholder="اسم المستعير" ${canBorrow ? '' : 'disabled'} />
+          </div>
+          <input type="date" id="borrowDate" value="${today}" max="${today}" ${canBorrow ? '' : 'disabled'} />
+          <button class="btn btn-primary btn-sm" id="borrowBtn" ${canBorrow ? '' : 'disabled'}>${icon('plus')} إعارة نسخة</button>
+        </div>
+        ${canBorrow ? '' : '<p class="borrow-blocked">لا توجد نسخ متاحة. أرجِع نسخة أو زد عدد النسخ من التعديل.</p>'}
+
+        <div class="loans-list">
+          ${loans.length ? loans.map(loanRow).join('') : '<p class="loans-empty">لم تُسجَّل أي إعارة لهذا الكتاب بعد.</p>'}
+        </div>
+      </div>
+
+      <div class="form-actions" style="position:static; margin:16px 0 0; padding:14px 0 0; border-radius:0;">
+        <button class="btn btn-outline" id="detailEdit">${icon('edit')} تعديل البيانات</button>
+        <button class="btn btn-outline" id="detailCopyRef">${icon('hash')} نسخ الرقم</button>
         <button class="btn btn-danger" id="detailDelete">${icon('trash')} حذف</button>
       </div>
     </div>`;
@@ -177,6 +204,51 @@ function showBookDetails(book) {
   openModal(html, {
     onMount: (overlay) => {
       overlay.querySelector('#detailClose').addEventListener('click', closeModal);
+
+      const nameInput = overlay.querySelector('#borrowName');
+      if (nameInput && !nameInput.disabled) {
+        // Suggest people who have borrowed before, so names stay consistent.
+        createAutocomplete(nameInput, {
+          getPool: () => RAFF_STATE.suggestions.filter((s) => s.type === 'borrower'),
+          onSelect: () => {},
+          typeLabels: SUGGESTION_TYPE_LABELS,
+        });
+        nameInput.focus();
+      }
+
+      const doBorrow = async () => {
+        const name = nameInput.value.trim();
+        const date = overlay.querySelector('#borrowDate').value;
+        if (!name) { toast('اسم المستعير مطلوب', 'error'); nameInput.focus(); return; }
+        const res = await window.raff.borrowCopy(book.id, {
+          borrowerName: name,
+          borrowedAt: date ? new Date(date + 'T12:00:00').toISOString() : undefined,
+        });
+        if (!res.ok) { toast(res.error, 'error'); return; }
+        await refreshState();
+        renderNavCounts();
+        refreshCurrentView();
+        toast(`تمت إعارة نسخة إلى ${name}`, 'success');
+        showBookDetails(book.id);
+      };
+
+      overlay.querySelector('#borrowBtn')?.addEventListener('click', doBorrow);
+      nameInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); doBorrow(); }
+      });
+
+      overlay.querySelectorAll('[data-return-loan]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const res = await window.raff.returnLoan(book.id, btn.dataset.returnLoan);
+          if (!res.ok) { toast(res.error, 'error'); return; }
+          await refreshState();
+          renderNavCounts();
+          refreshCurrentView();
+          toast('تم تسجيل إرجاع النسخة', 'success');
+          showBookDetails(book.id);
+        });
+      });
+
       overlay.querySelector('#detailEdit').addEventListener('click', () => {
         closeModal();
         navigateTo('edit', { book });
@@ -195,14 +267,10 @@ function showBookDetails(book) {
   });
 }
 
-function renderEmptyState({ title, desc, actionLabel, actionRoute }) {
-  return `
-    <div class="empty-state">
-      ${icon('book')}
-      <h3>${title}</h3>
-      <p>${desc}</p>
-      ${actionRoute ? `<button class="btn btn-primary" data-nav="${actionRoute}">${icon('plus')} ${actionLabel}</button>` : ''}
-    </div>`;
+function reportFormatDate(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
 /* =========================================================
@@ -249,10 +317,10 @@ function renderDashboard(root) {
 
   root.innerHTML = `
     <div class="stat-grid">
-      ${statCard(stats.totalBooks, 'إجمالي الكتب', 'book')}
-      ${statCard(stats.totalAuthors, 'عدد المؤلفين', 'user')}
-      ${statCard(stats.totalPublishers, 'دور النشر', 'building')}
-      ${statCard(stats.borrowed, 'كتب معارة حالياً', 'copies', 'stat-danger')}
+      ${statCard(stats.totalBooks, 'إجمالي العناوين', 'book')}
+      ${statCard(stats.availableCopies, 'نسخ متاحة', 'check', 'stat-success')}
+      ${statCard(stats.borrowedCopies, 'نسخ معارة', 'copies', 'stat-danger')}
+      ${statCard(stats.activeBorrowers, 'مستعيرون حالياً', 'user')}
     </div>
 
     <div class="dash-grid">
@@ -291,71 +359,174 @@ function renderDashboard(root) {
 }
 
 /* =========================================================
-   Browse / Search (shared component, two entry points)
+   Browse / Search
    ========================================================= */
 let _browserFilters = { query: '', field: 'all', status: 'all', sort: 'newest' };
 
+// Must match the CSS in .vlist-rows .book-row
+const ROW_HEIGHT = 62;
+const ROW_GAP = 8;
+const ROW_STEP = ROW_HEIGHT + ROW_GAP;
+
+let _vlist = null;
+let _queryDebounce = null;
+
+/**
+ * Rebuilding the whole panel on every keystroke destroyed the input element,
+ * which is why focus was lost after each character. The shell is now rendered
+ * once; typing only feeds new items into the virtual list.
+ */
 function renderBookBrowser(root, { presetQuery } = {}) {
   if (presetQuery !== undefined) _browserFilters.query = presetQuery;
   const f = _browserFilters;
 
-  let results = RAFF_STATE.books.filter((b) => bookMatchesQuery(b, f.query, f.field));
-  if (f.status !== 'all') results = results.filter((b) => b.status === f.status);
-  results = sortBooks(results, f.sort);
+  if (_vlist) { _vlist.destroy(); _vlist = null; }
 
   root.innerHTML = `
-    <div class="panel">
+    <div class="panel browser-panel">
       <div class="filters-row">
         <select id="filterField">
-          <option value="all" ${f.field === 'all' ? 'selected' : ''}>كل الحقول</option>
-          <option value="title" ${f.field === 'title' ? 'selected' : ''}>العنوان</option>
-          <option value="author" ${f.field === 'author' ? 'selected' : ''}>المؤلف</option>
-          <option value="publisher" ${f.field === 'publisher' ? 'selected' : ''}>دار النشر</option>
-          <option value="referenceNumber" ${f.field === 'referenceNumber' ? 'selected' : ''}>الرقم المرجعي</option>
-          <option value="category" ${f.field === 'category' ? 'selected' : ''}>التصنيف</option>
+          <option value="all">كل الحقول</option>
+          <option value="title">العنوان</option>
+          <option value="author">المؤلف</option>
+          <option value="publisher">دار النشر</option>
+          <option value="referenceNumber">الرقم المرجعي</option>
+          <option value="category">المجال</option>
+          <option value="borrowers">المستعير</option>
         </select>
-        <input type="text" id="filterQuery" placeholder="اكتب كلمة البحث..." value="${escapeHtml(f.query)}" />
+        <div class="ac-anchor filter-query-wrap">
+          <input type="text" id="filterQuery" placeholder="اكتب كلمة البحث..." autocomplete="off" />
+        </div>
         <div class="chip-toggle" id="statusToggle">
-          <button data-val="all" class="${f.status === 'all' ? 'active' : ''}">الكل</button>
-          <button data-val="متاح" class="${f.status === 'متاح' ? 'active' : ''}">متاح</button>
-          <button data-val="معار" class="${f.status === 'معار' ? 'active' : ''}">معار</button>
+          <button data-val="all">الكل</button>
+          <button data-val="${RaffBook.STATUS_AVAILABLE}">متاح</button>
+          <button data-val="${RaffBook.STATUS_PARTIAL}">معار جزئياً</button>
+          <button data-val="${RaffBook.STATUS_FULL}">معار بالكامل</button>
         </div>
         <select id="filterSort">
-          <option value="newest" ${f.sort === 'newest' ? 'selected' : ''}>الأحدث أولاً</option>
-          <option value="oldest" ${f.sort === 'oldest' ? 'selected' : ''}>الأقدم أولاً</option>
-          <option value="title-asc" ${f.sort === 'title-asc' ? 'selected' : ''}>ترتيب حسب العنوان</option>
-          <option value="author-asc" ${f.sort === 'author-asc' ? 'selected' : ''}>ترتيب حسب المؤلف</option>
+          <option value="newest">الأحدث أولاً</option>
+          <option value="oldest">الأقدم أولاً</option>
+          <option value="title-asc">ترتيب حسب العنوان</option>
+          <option value="author-asc">ترتيب حسب المؤلف</option>
         </select>
-        <span class="text-muted" style="font-size:12.5px; margin-inline-start:auto;">${results.length} نتيجة</span>
+        <span class="result-count" id="resultCount"></span>
       </div>
 
-      <div class="book-list">
-        ${results.length ? results.map(renderBookRow).join('') : renderEmptyState({
-          title: 'لا توجد نتائج مطابقة',
-          desc: 'جرّب كلمة بحث مختلفة أو غيّر الفلاتر المستخدمة.',
-        })}
-      </div>
+      <div class="vlist-scroll" id="bookScroll"></div>
     </div>
   `;
 
-  root.querySelector('#filterField').addEventListener('change', (e) => {
-    _browserFilters.field = e.target.value;
-    renderBookBrowser(root);
+  const fieldSel = root.querySelector('#filterField');
+  const queryInput = root.querySelector('#filterQuery');
+  const sortSel = root.querySelector('#filterSort');
+  const statusToggle = root.querySelector('#statusToggle');
+  const scrollEl = root.querySelector('#bookScroll');
+
+  // Set values via properties, never by re-rendering markup.
+  fieldSel.value = f.field;
+  queryInput.value = f.query;
+  sortSel.value = f.sort;
+  syncStatusToggle(statusToggle, f.status);
+
+  _vlist = createVirtualList(scrollEl, {
+    rowStep: ROW_STEP,
+    rowHeight: ROW_HEIGHT,
+    renderRow: (book) => renderBookRow(book),
+    emptyHtml: `
+      <div class="empty-state">
+        ${icon('book')}
+        <h3>لا توجد نتائج مطابقة</h3>
+        <p>جرّب كلمة بحث مختلفة أو غيّر الفلاتر المستخدمة.</p>
+      </div>`,
   });
-  root.querySelector('#filterQuery').addEventListener('input', (e) => {
-    _browserFilters.query = e.target.value;
-    renderBookBrowser(root);
+
+  fieldSel.addEventListener('change', () => {
+    _browserFilters.field = fieldSel.value;
+    updateBookResults({ resetScroll: true });
   });
-  root.querySelector('#filterSort').addEventListener('change', (e) => {
-    _browserFilters.sort = e.target.value;
-    renderBookBrowser(root);
+  sortSel.addEventListener('change', () => {
+    _browserFilters.sort = sortSel.value;
+    updateBookResults({ resetScroll: true });
   });
-  root.querySelector('#statusToggle').addEventListener('click', (e) => {
+  statusToggle.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-val]');
     if (!btn) return;
     _browserFilters.status = btn.dataset.val;
-    renderBookBrowser(root);
+    syncStatusToggle(statusToggle, _browserFilters.status);
+    updateBookResults({ resetScroll: true });
   });
+  queryInput.addEventListener('input', () => {
+    _browserFilters.query = queryInput.value;
+    syncQuickSearchValue(queryInput.value);
+    scheduleBookResults();
+  });
+
+  // Suggestions narrow to whichever field the user is filtering on.
+  createAutocomplete(queryInput, {
+    getPool: () => suggestionPoolForField(_browserFilters.field),
+    onSelect: (label) => {
+      _browserFilters.query = label;
+      syncQuickSearchValue(label);
+      updateBookResults({ resetScroll: true });
+    },
+    typeLabels: SUGGESTION_TYPE_LABELS,
+  });
+
+  updateBookResults({ resetScroll: true });
+}
+
+/** Maps a search field onto the suggestion types worth offering for it. */
+function suggestionPoolForField(field) {
+  const map = {
+    all: null,
+    title: 'title',
+    author: 'author',
+    publisher: 'publisher',
+    referenceNumber: 'reference',
+    category: 'category',
+    borrowers: 'borrower',
+  };
+  const type = map[field];
+  if (!type) return RAFF_STATE.suggestions;
+  return RAFF_STATE.suggestions.filter((s) => s.type === type);
+}
+
+function syncStatusToggle(toggleEl, status) {
+  toggleEl.querySelectorAll('button[data-val]').forEach((b) => {
+    b.classList.toggle('active', b.dataset.val === status);
+  });
+}
+
+/** Keeps the topbar field and the in-view field showing the same text
+ *  without either one stealing focus from the other. */
+function syncQuickSearchValue(value) {
+  const quick = document.getElementById('quickSearchInput');
+  if (quick && quick.value !== value && document.activeElement !== quick) quick.value = value;
+}
+function syncFilterInputValue(value) {
+  const inView = document.getElementById('filterQuery');
+  if (inView && inView.value !== value && document.activeElement !== inView) inView.value = value;
+}
+
+/** Coalesces bursts of keystrokes into a single filter pass per frame. */
+function scheduleBookResults() {
+  if (_queryDebounce) clearTimeout(_queryDebounce);
+  _queryDebounce = setTimeout(() => {
+    _queryDebounce = null;
+    updateBookResults({ resetScroll: true });
+  }, 50);
+}
+
+function updateBookResults({ resetScroll = false } = {}) {
+  if (!_vlist) return;
+  const results = queryBooks(RAFF_STATE.index, _browserFilters);
+  _vlist.setItems(results, { resetScroll });
+  const counter = document.getElementById('resultCount');
+  if (counter) {
+    counter.textContent = results.length === RAFF_STATE.books.length
+      ? `${results.length} كتاب`
+      : `${results.length} نتيجة من ${RAFF_STATE.books.length}`;
+  }
 }
 
 function showSavedBookModal(record, { andNew = false } = {}) {
@@ -419,25 +590,18 @@ function renderAddForm(root, editingBook) {
 
           <div class="field" id="field-author">
             <label>${icon('user')} المؤلف <span class="required">*</span></label>
-            <input type="text" name="author" list="authorsList" value="${escapeHtml(b.author)}" placeholder="اسم المؤلف" />
-            <datalist id="authorsList">${meta.authors.map((a) => `<option value="${escapeHtml(a)}">`).join('')}</datalist>
+            <div class="ac-anchor"><input type="text" name="author" value="${escapeHtml(b.author)}" placeholder="اسم المؤلف" /></div>
             <span class="error-msg hidden">هذا الحقل مطلوب</span>
           </div>
 
           <div class="field">
             <label>${icon('building')} دار النشر</label>
-            <input type="text" name="publisher" list="publishersList" value="${escapeHtml(b.publisher)}" placeholder="اسم دار النشر" />
-            <datalist id="publishersList">${meta.publishers.map((p) => `<option value="${escapeHtml(p)}">`).join('')}</datalist>
+            <div class="ac-anchor"><input type="text" name="publisher" value="${escapeHtml(b.publisher)}" placeholder="اسم دار النشر" /></div>
           </div>
 
           <div class="field">
             <label>${icon('tag')} المجال / التصنيف</label>
-            <input type="text" name="category" list="categoriesList" value="${escapeHtml(b.category)}" placeholder="مثال: أدب، تفسير، فقه" />
-            <datalist id="categoriesList">
-              ${['تفسير', 'حديث', 'فقه', 'عقيدة', 'أدب', 'لغة عربية', 'تاريخ', 'سيرة', 'تزكية وأخلاق', ...meta.categories]
-                .filter((v, i, arr) => v && arr.indexOf(v) === i)
-                .map((c) => `<option value="${escapeHtml(c)}">`).join('')}
-            </datalist>
+            <div class="ac-anchor"><input type="text" name="category" value="${escapeHtml(b.category)}" placeholder="مثال: أدب، تفسير، فقه" /></div>
           </div>
 
           ${isEdit ? `
@@ -462,27 +626,19 @@ function renderAddForm(root, editingBook) {
 
           <div class="field">
             <label>${icon('copies')} عدد النسخ</label>
-            <input type="number" name="copiesTotal" min="1" value="${b.copiesTotal || 1}" />
+            <input type="number" name="copiesTotal" min="${isEdit ? Math.max(1, RaffBook.borrowedCopies(b)) : 1}" value="${b.copiesTotal || 1}" />
+            ${isEdit && RaffBook.borrowedCopies(b) > 0
+              ? `<span class="hint">لا يمكن أن يقل عن ${RaffBook.borrowedCopies(b)} (نسخ معارة حالياً)</span>`
+              : ''}
           </div>
 
-          <div class="field">
-            <label>${icon('check')} حالة الكتاب</label>
-            <select name="status" id="statusSelect">
-              <option value="متاح" ${b.status !== 'معار' ? 'selected' : ''}>متاح</option>
-              <option value="معار" ${b.status === 'معار' ? 'selected' : ''}>معار</option>
-            </select>
-          </div>
-
-          <div class="field ${b.status === 'معار' ? '' : 'hidden'}" id="borrowerField">
-            <label>${icon('user')} اسم المستعير</label>
-            <input type="text" name="borrowerName" value="${escapeHtml(b.borrowerName)}" placeholder="اسم الشخص المستعير" />
-          </div>
-
-          <div class="field ${b.status === 'معار' ? '' : 'span-2'}" id="notesField">
+          <div class="field span-2">
             <label>${icon('note')} ملاحظات</label>
             <input type="text" name="notes" value="${escapeHtml(b.notes)}" placeholder="أي تفاصيل إضافية عن الكتاب أو نسخته..." />
           </div>
         </div>
+
+        ${isEdit ? '' : `<p class="form-note">${icon('info', 13)} تُسجَّل الإعارات لاحقاً من نافذة تفاصيل الكتاب، وتُحتسب حالة الكتاب تلقائياً حسب النسخ المتاحة.</p>`}
 
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">${icon('check')} ${isEdit ? 'حفظ التعديلات' : 'حفظ الكتاب'}</button>
@@ -495,15 +651,16 @@ function renderAddForm(root, editingBook) {
   `;
 
   const form = root.querySelector('#bookForm');
-  form.querySelector('#statusSelect').addEventListener('change', (e) => {
-    const bf = root.querySelector('#borrowerField');
-    const nf = root.querySelector('#notesField');
-    const borrowed = e.target.value === 'معار';
-    // When available, notes takes over the borrower's cell instead of leaving
-    // a hole in the grid; when borrowed, notes shifts aside to make room.
-    bf.classList.toggle('hidden', !borrowed);
-    nf.classList.toggle('span-2', !borrowed);
-    if (borrowed) bf.querySelector('input').focus();
+
+  // Predictive suggestions on the fields where consistency matters most.
+  [['author', 'author'], ['publisher', 'publisher'], ['category', 'category']].forEach(([name, type]) => {
+    const input = form.querySelector(`[name=${name}]`);
+    if (!input) return;
+    createAutocomplete(input, {
+      getPool: () => (type === 'category' ? categoryPool() : RAFF_STATE.suggestions.filter((s) => s.type === type)),
+      onSelect: () => {},
+      typeLabels: SUGGESTION_TYPE_LABELS,
+    });
   });
 
   function validate(data) {
@@ -549,6 +706,214 @@ function renderAddForm(root, editingBook) {
   root.querySelector('#saveAndNew')?.addEventListener('click', () => submitHandler(true));
 }
 
+/** Common categories, offered even before any book uses them. */
+const DEFAULT_CATEGORIES = [
+  'تفسير', 'حديث', 'فقه', 'أصول الفقه', 'عقيدة',
+  'سيرة', 'تاريخ', 'أدب', 'لغة عربية', 'تزكية وأخلاق',
+];
+
+function categoryPool() {
+  const used = RAFF_STATE.suggestions.filter((s) => s.type === 'category');
+  const seen = new Set(used.map((s) => s.label));
+  const defaults = DEFAULT_CATEGORIES
+    .filter((c) => !seen.has(c))
+    .map((c) => ({ label: c, type: 'category', norm: normalizeArabic(c) }));
+  // Categories already in the library rank first; defaults fill the rest.
+  return used.concat(defaults);
+}
+
+/* =========================================================
+   Reports / lookup console
+   ========================================================= */
+let _reportState = { dim: 'borrower', value: '' };
+let _reportAc = null;
+
+function renderReports(root) {
+  const { dim, value } = _reportState;
+  const dimDef = DIMENSIONS[dim];
+
+  root.innerHTML = `
+    <div class="panel reports-panel">
+      <div class="reports-toolbar">
+        <div class="dim-chips" id="dimChips">
+          ${Object.values(DIMENSIONS).map((d) => `
+            <button class="dim-chip ${d.key === dim ? 'active' : ''}" data-dim="${d.key}">
+              ${icon(d.icon, 14)}<span>${d.label}</span>
+            </button>`).join('')}
+        </div>
+
+        <div class="reports-lookup ac-anchor">
+          ${icon('search', 15)}
+          <input type="text" id="reportLookup" placeholder="اكتب ${escapeHtml(dimDef.singular)} للاستدعاء..." />
+          ${value ? `<button class="lookup-clear" id="lookupClear" aria-label="مسح">${icon('x', 13)}</button>` : ''}
+        </div>
+      </div>
+
+      <div class="reports-body" id="reportsBody"></div>
+    </div>`;
+
+  const chips = root.querySelector('#dimChips');
+  chips.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-dim]');
+    if (!btn) return;
+    _reportState = { dim: btn.dataset.dim, value: '' };
+    renderReports(root);
+  });
+
+  const lookup = root.querySelector('#reportLookup');
+  lookup.value = value;
+
+  if (_reportAc) { _reportAc.destroy(); _reportAc = null; }
+  _reportAc = createAutocomplete(lookup, {
+    getPool: () => reportPoolFor(dim),
+    onSelect: (label) => {
+      _reportState.value = label;
+      renderReports(root);
+    },
+    typeLabels: SUGGESTION_TYPE_LABELS,
+    minChars: 1,
+  });
+
+  lookup.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && lookup.value.trim()) {
+      _reportState.value = lookup.value.trim();
+      renderReports(root);
+    }
+  });
+
+  root.querySelector('#lookupClear')?.addEventListener('click', () => {
+    _reportState.value = '';
+    renderReports(root);
+  });
+
+  renderReportsBody(root.querySelector('#reportsBody'), root);
+}
+
+/** The suggestion pool for the currently selected dimension. */
+function reportPoolFor(dim) {
+  const typeByDim = {
+    borrower: 'borrower', publisher: 'publisher',
+    author: 'author', category: 'category',
+  };
+  if (dim === 'year') {
+    return RAFF_STATE.meta.years.map((y) => ({ label: y, type: 'year', norm: normalizeArabic(y) }));
+  }
+  const type = typeByDim[dim];
+  return RAFF_STATE.suggestions.filter((s) => s.type === type);
+}
+
+function renderReportsBody(body, root) {
+  const { dim, value } = _reportState;
+  const index = RAFF_STATE.reportIndex;
+  const dimDef = DIMENSIONS[dim];
+
+  if (!value) {
+    const ranked = rankDimension(index, dim, { limit: 200 });
+    if (!ranked.length) {
+      body.innerHTML = `<div class="empty-state">${icon('stack')}<h3>لا توجد بيانات</h3>
+        <p>لم تُسجَّل بعد أي ${escapeHtml(dimDef.label)} في المكتبة.</p></div>`;
+      return;
+    }
+
+    const isBorrower = dim === 'borrower';
+    const totals = ranked.reduce((acc, r) => {
+      if (isBorrower) { acc.a += r.activeLoans; acc.b += r.totalLoans; }
+      else { acc.a += r.titles; acc.b += r.borrowed; }
+      return acc;
+    }, { a: 0, b: 0 });
+
+    body.innerHTML = `
+      <div class="report-summary">
+        <span class="report-summary-title">${icon(dimDef.icon, 15)} ترتيب ${escapeHtml(dimDef.label)}</span>
+        <span class="report-summary-meta">
+          ${ranked.length} ${isBorrower ? 'مستعيراً' : 'قيمة'} ·
+          ${isBorrower ? `${totals.a} إعارة مفتوحة` : `${totals.a} عنوان`}
+        </span>
+      </div>
+      <div class="report-table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th style="width:36px;">#</th>
+              <th>${escapeHtml(dimDef.singular)}</th>
+              ${isBorrower
+                ? '<th>بحوزته الآن</th><th>إجمالي الإعارات</th><th>متوسط المدة</th><th>أطول مدة</th>'
+                : '<th>العناوين</th><th>إجمالي النسخ</th><th>معارة</th><th>متاحة</th>'}
+            </tr>
+          </thead>
+          <tbody>
+            ${ranked.map((r, i) => `
+              <tr class="report-clickable" data-value="${escapeHtml(r.value)}">
+                <td class="rank-num">${i + 1}</td>
+                <td class="rank-value">${escapeHtml(r.value) || 'غير محدد'}</td>
+                ${isBorrower
+                  ? `<td><span class="num ${r.activeLoans ? 'num-warn' : ''}">${r.activeLoans}</span></td>
+                     <td>${r.totalLoans}</td>
+                     <td>${r.avgDays} يوم</td>
+                     <td>${r.maxDays} يوم</td>`
+                  : `<td><strong>${r.titles}</strong></td>
+                     <td>${r.copies}</td>
+                     <td><span class="num ${r.borrowed ? 'num-warn' : ''}">${r.borrowed}</span></td>
+                     <td><span class="num num-ok">${r.available}</span></td>`}
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+    body.querySelectorAll('.report-clickable').forEach((tr) => {
+      tr.addEventListener('click', () => {
+        _reportState.value = tr.dataset.value;
+        renderReports(root);
+      });
+    });
+    return;
+  }
+
+  const report = reportFor(index, dim, value);
+  if (!report) {
+    body.innerHTML = `<div class="empty-state">${icon('search')}<h3>لا توجد نتائج</h3>
+      <p>لم يُعثر على "${escapeHtml(value)}" ضمن ${escapeHtml(dimDef.label)}.</p></div>`;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="report-header">
+      <div>
+        <span class="report-eyebrow">${icon(dimDef.icon, 13)} ${escapeHtml(dimDef.singular)}</span>
+        <h3 class="report-value">${escapeHtml(report.value) || 'غير محدد'}</h3>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="backToRank">${icon('refresh')} عرض الترتيب الكامل</button>
+    </div>
+
+    <div class="kpi-grid">
+      ${report.kpis.map((k) => `
+        <div class="kpi-card ${k.tone ? 'kpi-' + k.tone : ''}">
+          <div class="kpi-value">${k.value}${k.suffix ? `<span class="kpi-suffix">${k.suffix}</span>` : ''}</div>
+          <div class="kpi-label">${k.label}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="report-table-wrap">
+      <table class="report-table">
+        <thead><tr>${report.columns.map((c) => `<th>${c}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${report.rows.map((r) => `
+            <tr class="report-row-${r.state} report-book" data-book="${r.bookId}">
+              ${r.cells.map((c, i) => `<td class="${i === 0 ? 'cell-title' : ''} ${i === 1 ? 'cell-ref' : ''}">${escapeHtml(String(c))}</td>`).join('')}
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  body.querySelector('#backToRank').addEventListener('click', () => {
+    _reportState.value = '';
+    renderReports(root);
+  });
+  body.querySelectorAll('.report-book').forEach((tr) => {
+    tr.addEventListener('click', () => showBookDetails(tr.dataset.book));
+  });
+}
+
 /* =========================================================
    Statistics
    ========================================================= */
@@ -561,15 +926,15 @@ function renderStats(root) {
 
   root.innerHTML = `
     <div class="stat-grid">
-      <div class="stat-card"><div class="stat-value">${stats.totalBooks ?? 0}</div><div class="stat-label">إجمالي الكتب</div></div>
-      <div class="stat-card"><div class="stat-value">${stats.totalCopies ?? 0}</div><div class="stat-label">إجمالي النسخ</div></div>
-      <div class="stat-card stat-success"><div class="stat-value">${stats.available ?? 0}</div><div class="stat-label">نسخ متاحة</div></div>
-      <div class="stat-card stat-danger"><div class="stat-value">${stats.borrowed ?? 0}</div><div class="stat-label">كتب معارة</div></div>
+      <div class="stat-card"><div class="stat-icon">${icon('book', 18)}</div><div><div class="stat-value">${stats.totalBooks ?? 0}</div><div class="stat-label">إجمالي العناوين</div></div></div>
+      <div class="stat-card"><div class="stat-icon">${icon('copies', 18)}</div><div><div class="stat-value">${stats.totalCopies ?? 0}</div><div class="stat-label">إجمالي النسخ</div></div></div>
+      <div class="stat-card stat-success"><div class="stat-icon">${icon('check', 18)}</div><div><div class="stat-value">${stats.availableCopies ?? 0}</div><div class="stat-label">نسخ متاحة</div></div></div>
+      <div class="stat-card stat-danger"><div class="stat-icon">${icon('user', 18)}</div><div><div class="stat-value">${stats.borrowedCopies ?? 0}</div><div class="stat-label">نسخ معارة</div></div></div>
     </div>
 
     <div class="settings-grid">
       <div class="panel">
-        <div class="panel-header"><h2 class="panel-title">حسب التصنيف</h2></div>
+        <div class="panel-header"><h2 class="panel-title">حسب المجال</h2></div>
         ${cats.length ? `<div class="bar-chart">${cats.map(([k, v]) => `
           <div class="bar-row">
             <div class="bar-row-label">${escapeHtml(k)}</div>

@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('raff', {
   updateBook: (id, patch) => ipcRenderer.invoke('lib:update', id, patch),
   removeBook: (id) => ipcRenderer.invoke('lib:remove', id),
   restoreBook: (book) => ipcRenderer.invoke('lib:restore', book),
+  borrowCopy: (bookId, payload) => ipcRenderer.invoke('lib:borrow', bookId, payload),
+  returnLoan: (bookId, loanId, returnedAt) => ipcRenderer.invoke('lib:return', bookId, loanId, returnedAt),
   getStats: () => ipcRenderer.invoke('lib:stats'),
   getMeta: () => ipcRenderer.invoke('lib:meta'),
 
@@ -20,4 +22,13 @@ contextBridge.exposeInMainWorld('raff', {
 
   openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
+
+  // Window controls for the custom, in-app title bar.
+  minimize: () => ipcRenderer.invoke('win:minimize'),
+  toggleMaximize: () => ipcRenderer.invoke('win:toggleMaximize'),
+  close: () => ipcRenderer.invoke('win:close'),
+  isMaximized: () => ipcRenderer.invoke('win:isMaximized'),
+  onWindowStateChange: (callback) => {
+    ipcRenderer.on('win:state', (_e, state) => callback(state));
+  },
 });

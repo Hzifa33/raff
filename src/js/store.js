@@ -2,9 +2,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const B = require('./book-status');
 
 const DB_FILE = 'raff-library.json';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 function nowIso() {
   return new Date().toISOString();
@@ -12,6 +13,10 @@ function nowIso() {
 
 function genId() {
   return 'b_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function genLoanId() {
+  return 'l_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
 function escapeXml(str) {
@@ -59,6 +64,7 @@ class Store {
         }
         this.db.nextRefSeq = maxSeq + 1;
       }
+      this._migrate();
     } catch (err) {
       // Corrupt file safety net: back it up and start fresh rather than crash.
       try {
@@ -78,6 +84,32 @@ class Store {
     fs.renameSync(tmp, this.filePath);
   }
 
+  /**
+   * v1 stored a single `status` string plus one `borrowerName`. v2 stores a
+   * loan ledger and derives status from it. Convert in place, once, and keep
+   * the old borrower as an open loan dated to the record's creation.
+   */
+  _migrate() {
+    if ((this.db.schemaVersion || 1) >= SCHEMA_VERSION) return;
+
+    for (const book of this.db.books) {
+      if (!Array.isArray(book.loans)) book.loans = [];
+      const wasBorrowed = book.status === 'معار';
+      if (wasBorrowed && book.loans.length === 0) {
+        book.loans.push({
+          id: genLoanId(),
+          borrowerName: (book.borrowerName || 'غير معروف').trim(),
+          borrowedAt: book.updatedAt || book.createdAt || nowIso(),
+          returnedAt: null,
+        });
+      }
+      delete book.status;
+      delete book.borrowerName;
+    }
+    this.db.schemaVersion = SCHEMA_VERSION;
+    this._save();
+  }
+
   getAll() {
     return this.db.books;
   }
@@ -86,15 +118,24 @@ class Store {
     const authors = new Set();
     const publishers = new Set();
     const categories = new Set();
+    const borrowers = new Set();
+    const years = new Set();
     for (const b of this.db.books) {
       if (b.author) authors.add(b.author.trim());
       if (b.publisher) publishers.add(b.publisher.trim());
       if (b.category) categories.add(b.category.trim());
+      if (b.publishYear) years.add(b.publishYear.trim());
+      for (const loan of b.loans || []) {
+        if (loan.borrowerName) borrowers.add(loan.borrowerName.trim());
+      }
     }
+    const arSort = (a, c) => a.localeCompare(c, 'ar');
     return {
-      authors: [...authors].sort((a, c) => a.localeCompare(c, 'ar')),
-      publishers: [...publishers].sort((a, c) => a.localeCompare(c, 'ar')),
-      categories: [...categories].sort((a, c) => a.localeCompare(c, 'ar')),
+      authors: [...authors].sort(arSort),
+      publishers: [...publishers].sort(arSort),
+      categories: [...categories].sort(arSort),
+      borrowers: [...borrowers].sort(arSort),
+      years: [...years].sort(arSort),
       filePath: this.filePath,
     };
   }
@@ -105,7 +146,7 @@ class Store {
     return 'raf-' + String(seq).padStart(4, '0');
   }
 
-  addBook(book, { keepReferenceNumber = false } = {}) {
+  addBook(book, { keepReferenceNumber = false, defer = false } = {}) {
     const referenceNumber = (keepReferenceNumber && (book.referenceNumber || '').trim())
       ? book.referenceNumber.trim()
       : this._nextReferenceNumber();
@@ -120,15 +161,17 @@ class Store {
       edition: (book.edition || '').trim(),
       publishYear: (book.publishYear || '').toString().trim(),
       copiesTotal: Number(book.copiesTotal) > 0 ? Number(book.copiesTotal) : 1,
-      status: book.status === 'معار' ? 'معار' : 'متاح',
-      borrowerName: (book.borrowerName || '').trim(),
+      // Status is derived from this ledger; it is never stored.
+      loans: Array.isArray(book.loans) ? book.loans : [],
       notes: (book.notes || '').trim(),
       language: (book.language || 'العربية').trim(),
       createdAt: nowIso(),
       updatedAt: nowIso(),
     };
     this.db.books.unshift(record);
-    this._save();
+    // Bulk paths (import) defer the write; persisting the whole file once per
+    // inserted book turns an import of N books into O(N^2) disk work.
+    if (!defer) this._save();
     return record;
   }
 
@@ -136,10 +179,68 @@ class Store {
     const idx = this.db.books.findIndex((b) => b.id === id);
     if (idx === -1) return null;
     const current = this.db.books[idx];
-    const updated = { ...current, ...patch, id: current.id, updatedAt: nowIso() };
+
+    const safePatch = { ...patch };
+    // The ledger is only ever changed through borrowCopy/returnLoan.
+    delete safePatch.loans;
+    delete safePatch.id;
+    delete safePatch.status;
+    delete safePatch.borrowerName;
+
+    if (safePatch.copiesTotal !== undefined) {
+      const requested = Number(safePatch.copiesTotal);
+      const out = B.borrowedCopies(current);
+      // Refuse to record fewer copies than are currently on loan.
+      safePatch.copiesTotal = Math.max(out || 1, requested > 0 ? requested : 1);
+    }
+
+    const updated = { ...current, ...safePatch, id: current.id, loans: current.loans, updatedAt: nowIso() };
     this.db.books[idx] = updated;
     this._save();
     return updated;
+  }
+
+  /** Lends one copy, if one is free. Returns { ok, error?, book? }. */
+  borrowCopy(bookId, { borrowerName, borrowedAt } = {}) {
+    const book = this.db.books.find((b) => b.id === bookId);
+    if (!book) return { ok: false, error: 'الكتاب غير موجود' };
+
+    const name = (borrowerName || '').trim();
+    if (!name) return { ok: false, error: 'اسم المستعير مطلوب' };
+    if (!B.canBorrow(book)) return { ok: false, error: 'لا توجد نسخ متاحة للإعارة' };
+
+    const when = borrowedAt ? new Date(borrowedAt) : new Date();
+    if (isNaN(when.getTime())) return { ok: false, error: 'تاريخ الإعارة غير صالح' };
+    if (when.getTime() > Date.now() + 86400000) return { ok: false, error: 'لا يمكن أن يكون تاريخ الإعارة في المستقبل' };
+
+    book.loans.push({
+      id: genLoanId(),
+      borrowerName: name,
+      borrowedAt: when.toISOString(),
+      returnedAt: null,
+    });
+    book.updatedAt = nowIso();
+    this._save();
+    return { ok: true, book };
+  }
+
+  /** Marks one open loan as returned. */
+  returnLoan(bookId, loanId, returnedAt) {
+    const book = this.db.books.find((b) => b.id === bookId);
+    if (!book) return { ok: false, error: 'الكتاب غير موجود' };
+    const loan = (book.loans || []).find((l) => l.id === loanId && !l.returnedAt);
+    if (!loan) return { ok: false, error: 'الإعارة غير موجودة أو أُرجعت مسبقاً' };
+
+    const when = returnedAt ? new Date(returnedAt) : new Date();
+    if (isNaN(when.getTime())) return { ok: false, error: 'تاريخ الإرجاع غير صالح' };
+    if (when.getTime() < Date.parse(loan.borrowedAt)) {
+      return { ok: false, error: 'تاريخ الإرجاع أسبق من تاريخ الإعارة' };
+    }
+
+    loan.returnedAt = when.toISOString();
+    book.updatedAt = nowIso();
+    this._save();
+    return { ok: true, book };
   }
 
   removeBook(id) {
@@ -166,16 +267,25 @@ class Store {
     const books = this.db.books;
     const byCategory = {};
     const byPublisher = {};
-    let borrowed = 0;
     let totalCopies = 0;
+    let borrowedCopies = 0;
+    let fullyBorrowed = 0;
+    let partiallyBorrowed = 0;
+    let activeBorrowers = new Set();
 
     for (const b of books) {
       const cat = b.category || 'غير مصنف';
       byCategory[cat] = (byCategory[cat] || 0) + 1;
       const pub = b.publisher || 'غير محدد';
       byPublisher[pub] = (byPublisher[pub] || 0) + 1;
-      if (b.status === 'معار') borrowed += 1;
-      totalCopies += Number(b.copiesTotal) || 0;
+
+      totalCopies += B.totalCopies(b);
+      const out = B.borrowedCopies(b);
+      borrowedCopies += out;
+      const status = B.bookStatus(b);
+      if (status === B.STATUS_FULL) fullyBorrowed += 1;
+      else if (status === B.STATUS_PARTIAL) partiallyBorrowed += 1;
+      for (const name of B.currentBorrowers(b)) activeBorrowers.add(name);
     }
 
     return {
@@ -184,8 +294,11 @@ class Store {
       totalPublishers: new Set(books.map((b) => b.publisher).filter(Boolean)).size,
       totalCategories: new Set(books.map((b) => b.category).filter(Boolean)).size,
       totalCopies,
-      borrowed,
-      available: books.length - borrowed,
+      borrowedCopies,
+      availableCopies: totalCopies - borrowedCopies,
+      fullyBorrowed,
+      partiallyBorrowed,
+      activeBorrowers: activeBorrowers.size,
       byCategory,
       byPublisher,
     };
@@ -197,12 +310,15 @@ class Store {
 
   exportCsv(filePath) {
     const headers = [
-      'العنوان', 'المؤلف', 'دار النشر', 'الرقم المرجعي', 'التصنيف',
-      'الطبعة', 'سنة النشر', 'عدد النسخ', 'الحالة', 'المستعير', 'ملاحظات',
+      'العنوان', 'المؤلف', 'دار النشر', 'الرقم المرجعي', 'المجال',
+      'الطبعة', 'سنة النشر', 'إجمالي النسخ', 'نسخ معارة', 'نسخ متاحة',
+      'الحالة', 'المستعيرون الحاليون', 'ملاحظات',
     ];
     const rows = this.db.books.map((b) => [
       b.title, b.author, b.publisher, b.referenceNumber, b.category,
-      b.edition, b.publishYear, b.copiesTotal, b.status, b.borrowerName, b.notes,
+      b.edition, b.publishYear,
+      B.totalCopies(b), B.borrowedCopies(b), B.availableCopies(b),
+      B.bookStatus(b), B.currentBorrowers(b).join(' | '), b.notes,
     ]);
     const escape = (v) => {
       const s = (v === undefined || v === null) ? '' : String(v);
@@ -215,6 +331,8 @@ class Store {
 
   exportTxt(filePath) {
     const lines = this.db.books.map((b, i) => {
+      const open = B.activeLoans(b).map((l) =>
+        `      - ${l.borrowerName} (منذ ${B.loanDurationDays(l)} يوماً)`);
       return [
         `${i + 1}. ${b.title || 'بدون عنوان'}`,
         `   المؤلف: ${b.author || '—'}`,
@@ -222,7 +340,10 @@ class Store {
         `   المجال/التصنيف: ${b.category || '—'}`,
         `   الرقم المرجعي: ${b.referenceNumber || '—'}`,
         `   الطبعة: ${b.edition || '—'}    سنة النشر: ${b.publishYear || '—'}`,
-        `   عدد النسخ: ${b.copiesTotal}    الحالة: ${b.status}${b.status === 'معار' && b.borrowerName ? ' (' + b.borrowerName + ')' : ''}`,
+        `   النسخ: ${B.totalCopies(b)} (متاح: ${B.availableCopies(b)}، معار: ${B.borrowedCopies(b)})`,
+        `   الحالة: ${B.bookStatus(b)}`,
+        open.length ? '   الإعارات المفتوحة:' : null,
+        ...(open.length ? open : []),
         b.notes ? `   ملاحظات: ${b.notes}` : null,
         '',
       ].filter((l) => l !== null).join('\n');
@@ -240,7 +361,8 @@ class Store {
         <td>${escapeXml(b.publisher)}</td>
         <td>${escapeXml(b.category)}</td>
         <td class="ltr">${escapeXml(b.referenceNumber)}</td>
-        <td>${b.status}</td>
+        <td>${B.availableCopies(b)} / ${B.totalCopies(b)}</td>
+        <td>${B.bookStatus(b)}</td>
       </tr>`).join('');
 
     return `<!DOCTYPE html>
@@ -258,7 +380,7 @@ class Store {
   <h1>فهرس مكتبة رَفّ</h1>
   <div class="sub">تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')} — إجمالي الكتب: ${this.db.books.length}</div>
   <table>
-    <thead><tr><th>#</th><th>العنوان</th><th>المؤلف</th><th>دار النشر</th><th>المجال</th><th>الرقم المرجعي</th><th>الحالة</th></tr></thead>
+    <thead><tr><th>#</th><th>العنوان</th><th>المؤلف</th><th>دار النشر</th><th>المجال</th><th>الرقم المرجعي</th><th>متاح / الكل</th><th>الحالة</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
 </body></html>`;
@@ -281,12 +403,13 @@ class Store {
         skipped += 1;
         continue;
       }
-      const record = this.addBook(item, { keepReferenceNumber: true });
+      const record = this.addBook(item, { keepReferenceNumber: true, defer: true });
       const m = /(\d+)\s*$/.exec(record.referenceNumber || '');
       if (m) this.db.nextRefSeq = Math.max(this.db.nextRefSeq, parseInt(m[1], 10) + 1);
       if (record.referenceNumber) existingRefs.add(record.referenceNumber);
       added += 1;
     }
+    this._save();
     return { added, skipped };
   }
 

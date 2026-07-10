@@ -16,6 +16,8 @@ function createWindow() {
     minHeight: 700,
     backgroundColor: '#2B1B12',
     show: false,
+    frame: false,              // native chrome replaced by the in-app title bar
+    autoHideMenuBar: true,
     icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -30,8 +32,19 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
 
   mainWindow.once('ready-to-show', () => {
+    mainWindow.maximize();
     mainWindow.show();
   });
+
+  // Keep the in-app maximize/restore icon in sync with the real window state,
+  // including changes the user makes by dragging or double-clicking.
+  const sendState = () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('win:state', { maximized: mainWindow.isMaximized() });
+    }
+  };
+  mainWindow.on('maximize', sendState);
+  mainWindow.on('unmaximize', sendState);
 
   // Any external link (like the developer credit) opens in the OS browser,
   // never inside the app window.
@@ -50,6 +63,8 @@ app.whenReady().then(() => {
   ipcMain.handle('lib:update', (_e, id, patch) => store.updateBook(id, patch));
   ipcMain.handle('lib:remove', (_e, id) => store.removeBook(id));
   ipcMain.handle('lib:restore', (_e, book) => store.restoreBook(book));
+  ipcMain.handle('lib:borrow', (_e, bookId, payload) => store.borrowCopy(bookId, payload));
+  ipcMain.handle('lib:return', (_e, bookId, loanId, returnedAt) => store.returnLoan(bookId, loanId, returnedAt));
   ipcMain.handle('lib:stats', () => store.getStats());
   ipcMain.handle('lib:meta', () => store.getMeta());
 
@@ -145,6 +160,17 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('app:getVersion', () => app.getVersion());
+
+  // ---- IPC: custom window controls ----
+  ipcMain.handle('win:minimize', () => mainWindow && mainWindow.minimize());
+  ipcMain.handle('win:toggleMaximize', () => {
+    if (!mainWindow) return false;
+    if (mainWindow.isMaximized()) mainWindow.unmaximize();
+    else mainWindow.maximize();
+    return mainWindow.isMaximized();
+  });
+  ipcMain.handle('win:close', () => mainWindow && mainWindow.close());
+  ipcMain.handle('win:isMaximized', () => !!mainWindow && mainWindow.isMaximized());
 
   createWindow();
 

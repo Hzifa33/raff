@@ -2,7 +2,10 @@
 
 const RAFF_STATE = {
   books: [],
-  meta: { authors: [], publishers: [], categories: [] },
+  index: [],
+  suggestions: [],
+  reportIndex: null,
+  meta: { authors: [], publishers: [], categories: [], borrowers: [], years: [] },
   stats: {},
 };
 
@@ -19,6 +22,11 @@ async function refreshState() {
     window.raff.getStats(),
   ]);
   RAFF_STATE.books = books;
+  // All three indexes are derived views of the same data, rebuilt together so
+  // they can never drift out of sync with each other.
+  RAFF_STATE.index = buildSearchIndex(books);
+  RAFF_STATE.suggestions = buildSuggestionPool(books);
+  RAFF_STATE.reportIndex = buildReportIndex(books);
   RAFF_STATE.meta = meta;
   RAFF_STATE.stats = stats;
   _subscribers.forEach((fn) => fn(RAFF_STATE));

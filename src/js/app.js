@@ -4,8 +4,13 @@ const ROUTES = {
   dashboard: { title: 'لوحة المعلومات', subtitle: 'نظرة عامة على مكتبتك', render: (root) => renderDashboard(root) },
   search: { title: 'البحث المتقدم', subtitle: 'ابحث حسب العنوان، المؤلف، دار النشر، أو الرقم المرجعي', render: (root, ctx) => renderBookBrowser(root, ctx) },
   add: { title: 'إضافة كتاب جديد', subtitle: 'سجّل بيانات كتاب جديد في المكتبة', render: (root) => renderAddForm(root, null) },
-  library: { title: 'السجل الكامل', subtitle: 'جميع الكتب المسجلة في المكتبة', render: (root) => renderBookBrowser(root, { presetQuery: '' }) },
+  library: { title: 'السجل الكامل', subtitle: 'جميع الكتب المسجلة في المكتبة', render: (root) => {
+    const quick = document.getElementById('quickSearchInput');
+    if (quick) quick.value = '';
+    renderBookBrowser(root, { presetQuery: '' });
+  } },
   stats: { title: 'الإحصائيات', subtitle: 'أرقام وتحليلات حول مكتبتك', render: (root) => renderStats(root) },
+  reports: { title: 'الاستدعاء', subtitle: 'استدعِ مستعيراً أو دار نشر أو مؤلفاً واحصل على تحليل كامل بالأرقام', render: (root) => renderReports(root) },
   settings: { title: 'النسخ الاحتياطي والإعدادات', subtitle: 'إدارة بيانات المكتبة وإعدادات النظام', render: (root) => renderSettings(root) },
   edit: { title: 'تعديل بيانات الكتاب', subtitle: '', render: (root, ctx) => renderAddForm(root, ctx.book) },
 };
@@ -69,10 +74,18 @@ document.addEventListener('click', async (e) => {
   // Clicking anywhere else on a row opens its details.
   const row = e.target.closest('.book-row[data-action="details"]');
   if (row) {
-    const book = RAFF_STATE.books.find((b) => b.id === row.dataset.id);
-    if (book) showBookDetails(book);
+    showBookDetails(row.dataset.id);
   }
 });
+
+/** Re-renders the current view; browsing views update in place to keep scroll. */
+function refreshCurrentView() {
+  if (currentRoute === 'search' || currentRoute === 'library') {
+    updateBookResults({ resetScroll: false });
+  } else {
+    renderRoute();
+  }
+}
 
 /* ---- Keyboard access for book rows ---- */
 document.addEventListener('keydown', (e) => {
@@ -80,17 +93,42 @@ document.addEventListener('keydown', (e) => {
   const row = e.target.closest?.('.book-row[data-action="details"]');
   if (!row) return;
   e.preventDefault();
-  const book = RAFF_STATE.books.find((b) => b.id === row.dataset.id);
-  if (book) showBookDetails(book);
+  showBookDetails(row.dataset.id);
 });
 
-/* ---- Topbar quick search: jumps to the search view ---- */
+/* ---- Topbar quick search ----
+   Navigating on every keystroke would rebuild the view and pull focus out of
+   this input. Once we're already on a browsing route we only refresh results. */
 document.getElementById('quickSearchInput').addEventListener('input', (e) => {
-  _browserFilters.field = 'all';
-  navigateTo('search', { presetQuery: e.target.value });
+  const value = e.target.value;
+  _browserFilters.query = value;
+
+  if (currentRoute === 'search' || currentRoute === 'library') {
+    syncFilterInputValue(value);
+    scheduleBookResults();
+  } else {
+    _browserFilters.field = 'all';
+    navigateTo('search', { presetQuery: value });
+  }
 });
 
 document.getElementById('quickAddBtn').addEventListener('click', () => navigateTo('add'));
+
+/* ---- Predictive suggestions for the topbar search ---- */
+createAutocomplete(document.getElementById('quickSearchInput'), {
+  getPool: () => RAFF_STATE.suggestions,
+  onSelect: (label) => {
+    _browserFilters.query = label;
+    _browserFilters.field = 'all';
+    if (currentRoute === 'search' || currentRoute === 'library') {
+      syncFilterInputValue(label);
+      updateBookResults({ resetScroll: true });
+    } else {
+      navigateTo('search', { presetQuery: label });
+    }
+  },
+  typeLabels: SUGGESTION_TYPE_LABELS,
+});
 
 document.getElementById('devCreditLink').addEventListener('click', (e) => {
   e.preventDefault();
@@ -125,9 +163,34 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.activeElement === quick && quick.value) {
     quick.value = '';
     _browserFilters.query = '';
-    renderRoute();
+    if (currentRoute === 'search' || currentRoute === 'library') {
+      syncFilterInputValue('');
+      updateBookResults({ resetScroll: true });
+    }
   }
 });
+
+/* ---- Custom title bar window controls ---- */
+(function initWindowControls() {
+  const root = document.querySelector('.app-root');
+  const maxBtn = document.getElementById('winMaximize');
+
+  const applyState = ({ maximized }) => {
+    root.classList.toggle('is-maximized', !!maximized);
+    maxBtn.title = maximized ? 'استعادة' : 'تكبير';
+    maxBtn.setAttribute('aria-label', maxBtn.title);
+  };
+
+  document.getElementById('winMinimize').addEventListener('click', () => window.raff.minimize());
+  maxBtn.addEventListener('click', () => window.raff.toggleMaximize());
+  document.getElementById('winClose').addEventListener('click', () => window.raff.close());
+
+  // Double-clicking the drag area toggles maximize, matching OS behaviour.
+  document.querySelector('.titlebar-drag').addEventListener('dblclick', () => window.raff.toggleMaximize());
+
+  window.raff.onWindowStateChange(applyState);
+  window.raff.isMaximized().then((maximized) => applyState({ maximized }));
+})();
 
 /* ---- Init ---- */
 (async function init() {
