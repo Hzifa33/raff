@@ -49,6 +49,7 @@ app.whenReady().then(() => {
   ipcMain.handle('lib:add', (_e, book) => store.addBook(book));
   ipcMain.handle('lib:update', (_e, id, patch) => store.updateBook(id, patch));
   ipcMain.handle('lib:remove', (_e, id) => store.removeBook(id));
+  ipcMain.handle('lib:restore', (_e, book) => store.restoreBook(book));
   ipcMain.handle('lib:stats', () => store.getStats());
   ipcMain.handle('lib:meta', () => store.getMeta());
 

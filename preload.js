@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('raff', {
   addBook: (book) => ipcRenderer.invoke('lib:add', book),
   updateBook: (id, patch) => ipcRenderer.invoke('lib:update', id, patch),
   removeBook: (id) => ipcRenderer.invoke('lib:remove', id),
+  restoreBook: (book) => ipcRenderer.invoke('lib:restore', book),
   getStats: () => ipcRenderer.invoke('lib:stats'),
   getMeta: () => ipcRenderer.invoke('lib:meta'),
 

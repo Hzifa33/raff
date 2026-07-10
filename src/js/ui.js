@@ -1,18 +1,33 @@
 'use strict';
 
-function toast(message, type = 'info', timeout = 3200) {
+function toast(message, type = 'info', timeout = 3200, action = null) {
   const stack = document.getElementById('toastStack');
   const el = document.createElement('div');
   el.className = `toast ${type === 'error' ? 'toast-error' : type === 'success' ? 'toast-success' : ''}`;
   const iconName = type === 'error' ? 'alert' : type === 'success' ? 'check' : 'info';
-  el.innerHTML = `${icon(iconName)}<span>${message}</span>`;
-  stack.appendChild(el);
-  setTimeout(() => {
+  el.innerHTML = `${icon(iconName)}<span class="toast-msg">${message}</span>`;
+
+  const dismiss = () => {
+    if (!el.isConnected) return;
     el.style.transition = 'opacity .25s ease, transform .25s ease';
     el.style.opacity = '0';
     el.style.transform = 'translateY(6px)';
     setTimeout(() => el.remove(), 250);
-  }, timeout);
+  };
+
+  if (action) {
+    const btn = document.createElement('button');
+    btn.className = 'toast-action';
+    btn.textContent = action.label;
+    btn.addEventListener('click', () => {
+      dismiss();
+      action.onClick();
+    });
+    el.appendChild(btn);
+  }
+
+  stack.appendChild(el);
+  setTimeout(dismiss, timeout);
 }
 
 function openModal(innerHtml, { onMount } = {}) {

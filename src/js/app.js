@@ -62,18 +62,7 @@ document.addEventListener('click', async (e) => {
   const deleteBtn = e.target.closest('[data-action="delete"]');
   if (deleteBtn) {
     const book = RAFF_STATE.books.find((b) => b.id === deleteBtn.dataset.id);
-    if (!book) return;
-    const ok = await confirmModal({
-      title: 'حذف هذا الكتاب؟',
-      message: `سيتم حذف "${escapeHtml(book.title)}" نهائياً من سجل المكتبة.`,
-      confirmLabel: 'حذف',
-    });
-    if (!ok) return;
-    await window.raff.removeBook(book.id);
-    await refreshState();
-    renderNavCounts();
-    renderRoute();
-    toast('تم حذف الكتاب', 'success');
+    if (book) await deleteBookWithUndo(book);
     return;
   }
 
@@ -110,13 +99,33 @@ document.getElementById('devCreditLink').addEventListener('click', (e) => {
 
 /* ---- Keyboard shortcuts ---- */
 document.addEventListener('keydown', (e) => {
+  const quick = document.getElementById('quickSearchInput');
+
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
-    document.getElementById('quickSearchInput').focus();
+    quick.focus();
+    quick.select();
+    return;
   }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
     e.preventDefault();
     navigateTo('add');
+    return;
+  }
+  // Ctrl+S saves whichever book form is open.
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    const form = document.getElementById('bookForm');
+    if (form) {
+      e.preventDefault();
+      form.querySelector('button[type=submit]').click();
+    }
+    return;
+  }
+  // Escape clears the quick search when it holds focus.
+  if (e.key === 'Escape' && document.activeElement === quick && quick.value) {
+    quick.value = '';
+    _browserFilters.query = '';
+    renderRoute();
   }
 });
 

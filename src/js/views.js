@@ -91,6 +91,38 @@ function renderBookRow(book) {
     </div>`;
 }
 
+/**
+ * Confirms, deletes, then offers a real undo. Deleting a catalogued book is
+ * destructive and easy to do by mistake, so the record is kept in memory and
+ * restored verbatim (same id and reference number) if the user undoes.
+ */
+async function deleteBookWithUndo(book) {
+  const ok = await confirmModal({
+    title: 'حذف هذا الكتاب؟',
+    message: `سيتم حذف "${escapeHtml(book.title)}" من سجل المكتبة. يمكنك التراجع مباشرة بعد الحذف.`,
+    confirmLabel: 'حذف',
+  });
+  if (!ok) return false;
+
+  const snapshot = { ...book };
+  await window.raff.removeBook(book.id);
+  await refreshState();
+  renderNavCounts();
+  renderRoute();
+
+  toast('تم حذف الكتاب', 'success', 6000, {
+    label: 'تراجع',
+    onClick: async () => {
+      await window.raff.restoreBook(snapshot);
+      await refreshState();
+      renderNavCounts();
+      renderRoute();
+      toast('تمت استعادة الكتاب', 'success', 2200);
+    },
+  });
+  return true;
+}
+
 /* =========================================================
    Book details modal
    ========================================================= */
@@ -157,17 +189,7 @@ function showBookDetails(book) {
       });
       overlay.querySelector('#detailDelete').addEventListener('click', async () => {
         closeModal();
-        const ok = await confirmModal({
-          title: 'حذف هذا الكتاب؟',
-          message: `سيتم حذف "${escapeHtml(book.title)}" نهائياً من سجل المكتبة.`,
-          confirmLabel: 'حذف',
-        });
-        if (!ok) return;
-        await window.raff.removeBook(book.id);
-        await refreshState();
-        renderNavCounts();
-        renderRoute();
-        toast('تم حذف الكتاب', 'success');
+        await deleteBookWithUndo(book);
       });
     },
   });
@@ -451,14 +473,14 @@ function renderAddForm(root, editingBook) {
             </select>
           </div>
 
-          <div class="field" id="borrowerField" style="${b.status === 'معار' ? '' : 'visibility:hidden;'}">
+          <div class="field ${b.status === 'معار' ? '' : 'hidden'}" id="borrowerField">
             <label>${icon('user')} اسم المستعير</label>
             <input type="text" name="borrowerName" value="${escapeHtml(b.borrowerName)}" placeholder="اسم الشخص المستعير" />
           </div>
 
-          <div class="field span-3">
+          <div class="field ${b.status === 'معار' ? '' : 'span-2'}" id="notesField">
             <label>${icon('note')} ملاحظات</label>
-            <textarea name="notes" rows="2" placeholder="أي تفاصيل إضافية عن الكتاب أو نسخته...">${escapeHtml(b.notes)}</textarea>
+            <input type="text" name="notes" value="${escapeHtml(b.notes)}" placeholder="أي تفاصيل إضافية عن الكتاب أو نسخته..." />
           </div>
         </div>
 
@@ -475,8 +497,12 @@ function renderAddForm(root, editingBook) {
   const form = root.querySelector('#bookForm');
   form.querySelector('#statusSelect').addEventListener('change', (e) => {
     const bf = root.querySelector('#borrowerField');
+    const nf = root.querySelector('#notesField');
     const borrowed = e.target.value === 'معار';
-    bf.style.visibility = borrowed ? 'visible' : 'hidden';
+    // When available, notes takes over the borrower's cell instead of leaving
+    // a hole in the grid; when borrowed, notes shifts aside to make room.
+    bf.classList.toggle('hidden', !borrowed);
+    nf.classList.toggle('span-2', !borrowed);
     if (borrowed) bf.querySelector('input').focus();
   });
 
@@ -570,86 +596,61 @@ function renderStats(root) {
    ========================================================= */
 function renderSettings(root) {
   const meta = RAFF_STATE.meta;
+  const exportRow = (title, desc, id) => `
+    <div class="setting-action">
+      <div>
+        <div class="setting-action-title">${title}</div>
+        <div class="setting-action-desc">${desc}</div>
+      </div>
+      <button class="btn btn-outline btn-sm" id="${id}">${icon('download')} تصدير</button>
+    </div>`;
+
   root.innerHTML = `
     <div class="settings-grid">
       <div class="panel">
         <div class="panel-header">
           <div>
-            <h2 class="panel-title">النسخ الاحتياطي</h2>
-            <p class="panel-desc">احفظ نسخة من مكتبتك أو استرجعها لاحقاً</p>
+            <h2 class="panel-title">تصدير المكتبة</h2>
+            <p class="panel-desc">احفظ فهرسك بالصيغة التي تناسبك</p>
           </div>
         </div>
-        <div class="setting-action">
-          <div>
-            <div class="setting-action-title">تصدير نسخة احتياطية (JSON)</div>
-            <div class="setting-action-desc">ملف كامل يمكن استيراده لاحقاً على هذا الجهاز أو غيره</div>
-          </div>
-          <button class="btn btn-outline btn-sm" id="exportJsonBtn">${icon('download')} تصدير</button>
-        </div>
-        <div class="setting-action">
-          <div>
-            <div class="setting-action-title">تصدير كجدول بيانات (CSV)</div>
-            <div class="setting-action-desc">مناسب لفتحه في Excel أو مشاركته كتقرير</div>
-          </div>
-          <button class="btn btn-outline btn-sm" id="exportCsvBtn">${icon('download')} تصدير</button>
-        </div>
-        <div class="setting-action">
-          <div>
-            <div class="setting-action-title">تصدير كملف نصي (TXT)</div>
-            <div class="setting-action-desc">قائمة مقروءة بجميع الكتب وبياناتها</div>
-          </div>
-          <button class="btn btn-outline btn-sm" id="exportTxtBtn">${icon('download')} تصدير</button>
-        </div>
-        <div class="setting-action">
-          <div>
-            <div class="setting-action-title">تصدير كملف PDF</div>
-            <div class="setting-action-desc">تقرير جاهز للطباعة بجدول منسّق لكل الكتب</div>
-          </div>
-          <button class="btn btn-outline btn-sm" id="exportPdfBtn">${icon('download')} تصدير</button>
-        </div>
-        <div class="setting-action">
-          <div>
-            <div class="setting-action-title">استيراد نسخة احتياطية</div>
-            <div class="setting-action-desc">إضافة كتب من ملف JSON محفوظ مسبقاً (بدون تكرار الأرقام المرجعية)</div>
-          </div>
-          <button class="btn btn-outline btn-sm" id="importJsonBtn">${icon('upload')} استيراد</button>
-        </div>
+        ${exportRow('نسخة احتياطية كاملة (JSON)', 'قابلة للاستيراد لاحقاً على أي جهاز', 'exportJsonBtn')}
+        ${exportRow('جدول بيانات (CSV)', 'لفتحه في Excel', 'exportCsvBtn')}
+        ${exportRow('ملف نصي (TXT)', 'قائمة مقروءة بجميع الكتب', 'exportTxtBtn')}
+        ${exportRow('تقرير (PDF)', 'جدول منسّق جاهز للطباعة', 'exportPdfBtn')}
       </div>
 
       <div class="panel">
         <div class="panel-header">
           <div>
-            <h2 class="panel-title">معلومات النظام</h2>
-            <p class="panel-desc">تفاصيل حول المكتبة الحالية</p>
+            <h2 class="panel-title">الاستيراد والنظام</h2>
+            <p class="panel-desc">استرجاع البيانات ومعلومات المكتبة</p>
           </div>
         </div>
         <div class="setting-action">
-          <div class="setting-action-title">عدد الكتب</div>
-          <div class="text-muted">${RAFF_STATE.books.length}</div>
-        </div>
-        <div class="setting-action">
-          <div class="setting-action-title">عدد المؤلفين</div>
-          <div class="text-muted">${meta.authors.length}</div>
-        </div>
-        <div class="setting-action">
-          <div class="setting-action-title">عدد دور النشر</div>
-          <div class="text-muted">${meta.publishers.length}</div>
-        </div>
-        <div class="setting-action">
-          <div class="setting-action-title">مسار ملف قاعدة البيانات</div>
-          <div class="text-muted" style="font-size:11px; word-break:break-all; direction:ltr; text-align:left;">${escapeHtml(meta.filePath)}</div>
+          <div>
+            <div class="setting-action-title">استيراد نسخة احتياطية</div>
+            <div class="setting-action-desc">من ملف JSON، مع تجاهل الأرقام المرجعية المكررة</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="importJsonBtn">${icon('upload')} استيراد</button>
         </div>
 
-        <div class="panel-header" style="margin-top:22px;">
-          <div>
-            <h2 class="panel-title" style="color:var(--danger);">منطقة الخطر</h2>
-            <p class="panel-desc">هذا الإجراء لا يمكن التراجع عنه</p>
-          </div>
+        <div class="system-stats">
+          <div class="system-stat"><span class="system-stat-value">${RAFF_STATE.books.length}</span><span class="system-stat-label">كتاب</span></div>
+          <div class="system-stat"><span class="system-stat-value">${meta.authors.length}</span><span class="system-stat-label">مؤلف</span></div>
+          <div class="system-stat"><span class="system-stat-value">${meta.publishers.length}</span><span class="system-stat-label">دار نشر</span></div>
+          <div class="system-stat"><span class="system-stat-value">${meta.categories.length}</span><span class="system-stat-label">مجال</span></div>
         </div>
-        <div class="setting-action">
+
+        <div class="db-path">
+          <span class="setting-action-desc">مسار ملف البيانات</span>
+          <code title="${escapeHtml(meta.filePath)}">${escapeHtml(meta.filePath)}</code>
+        </div>
+
+        <div class="danger-zone">
           <div>
-            <div class="setting-action-title">حذف جميع بيانات المكتبة</div>
-            <div class="setting-action-desc">سيتم مسح جميع الكتب المسجلة نهائياً</div>
+            <div class="setting-action-title" style="color:var(--danger);">حذف جميع بيانات المكتبة</div>
+            <div class="setting-action-desc">إجراء نهائي لا يمكن التراجع عنه</div>
           </div>
           <button class="btn btn-danger btn-sm" id="resetAllBtn">${icon('trash')} حذف الكل</button>
         </div>

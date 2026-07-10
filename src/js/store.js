@@ -149,6 +149,19 @@ class Store {
     return before !== this.db.books.length;
   }
 
+  /**
+   * Puts a previously deleted record back exactly as it was — same id,
+   * same reference number, same timestamps — so an undo is a true undo
+   * rather than a re-add under a new number.
+   */
+  restoreBook(book) {
+    if (!book || !book.id) return null;
+    if (this.db.books.some((b) => b.id === book.id)) return book;
+    this.db.books.unshift(book);
+    this._save();
+    return book;
+  }
+
   getStats() {
     const books = this.db.books;
     const byCategory = {};
