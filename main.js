@@ -2,6 +2,7 @@
 
 const { app, BrowserWindow, ipcMain, shell, dialog, Menu } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const Store = require('./src/js/store');
 
 let mainWindow = null;
@@ -72,6 +73,48 @@ app.whenReady().then(() => {
     if (canceled || !filePath) return { ok: false };
     store.exportCsv(filePath);
     return { ok: true, filePath };
+  });
+
+  ipcMain.handle('lib:exportTxt', async () => {
+    const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+      title: 'تصدير كملف نصي',
+      defaultPath: `raff-library-${new Date().toISOString().slice(0, 10)}.txt`,
+      filters: [{ name: 'Text', extensions: ['txt'] }],
+    });
+    if (canceled || !filePath) return { ok: false };
+    store.exportTxt(filePath);
+    return { ok: true, filePath };
+  });
+
+  ipcMain.handle('lib:exportPdf', async () => {
+    const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+      title: 'تصدير كملف PDF',
+      defaultPath: `raff-library-${new Date().toISOString().slice(0, 10)}.pdf`,
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+    });
+    if (canceled || !filePath) return { ok: false };
+
+    const html = store.buildPrintableHtml();
+    const tmpHtmlPath = path.join(app.getPath('temp'), `raff-print-${Date.now()}.html`);
+    fs.writeFileSync(tmpHtmlPath, html, 'utf-8');
+
+    const printWin = new BrowserWindow({ show: false, webPreferences: { sandbox: false } });
+    try {
+      await printWin.loadFile(tmpHtmlPath);
+      const pdfBuffer = await printWin.webContents.printToPDF({
+        landscape: true,
+        printBackground: true,
+        pageSize: 'A4',
+        margins: { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 },
+      });
+      fs.writeFileSync(filePath, pdfBuffer);
+      return { ok: true, filePath };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    } finally {
+      printWin.destroy();
+      fs.unlink(tmpHtmlPath, () => {});
+    }
   });
 
   ipcMain.handle('lib:importJson', async () => {

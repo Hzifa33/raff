@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('raff', {
 
   exportJson: () => ipcRenderer.invoke('lib:exportJson'),
   exportCsv: () => ipcRenderer.invoke('lib:exportCsv'),
+  exportTxt: () => ipcRenderer.invoke('lib:exportTxt'),
+  exportPdf: () => ipcRenderer.invoke('lib:exportPdf'),
   importJson: () => ipcRenderer.invoke('lib:importJson'),
   resetAll: () => ipcRenderer.invoke('lib:resetAll'),
 

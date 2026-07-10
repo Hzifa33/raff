@@ -9,9 +9,30 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * Normalizes Arabic text for forgiving search matching:
+ * - strips diacritics (tashkeel) and the tatweel elongation mark
+ * - unifies alef forms (أ إ آ ٱ) to ا
+ * - unifies ta marbuta (ة) with ha (ه)
+ * - unifies alef maqsura (ى) with ya (ي)
+ * - unifies hamza-carrying waw/ya (ؤ ئ) with their base letter
+ * So searching "ا" also matches "أ", "إ", "آ", and so on across the text.
+ */
+function normalizeArabic(str) {
+  return (str ?? '').toString()
+    .replace(/[\u064B-\u0652\u0670\u06D6-\u06ED\u0640]/g, '') // tashkeel + tatweel
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي')
+    .toLowerCase()
+    .trim();
+}
+
 function bookMatchesQuery(book, query, field) {
   if (!query) return true;
-  const q = query.trim().toLowerCase();
+  const q = normalizeArabic(query);
   const hay = {
     all: [book.title, book.author, book.publisher, book.referenceNumber, book.category].join(' '),
     title: book.title,
@@ -20,7 +41,7 @@ function bookMatchesQuery(book, query, field) {
     referenceNumber: book.referenceNumber,
     category: book.category,
   };
-  return (hay[field] || hay.all).toLowerCase().includes(q);
+  return normalizeArabic(hay[field] || hay.all).includes(q);
 }
 
 function sortBooks(books, sortKey) {
@@ -213,6 +234,40 @@ function renderBookBrowser(root, { presetQuery } = {}) {
   });
 }
 
+function showSavedBookModal(record, { andNew = false } = {}) {
+  const html = `
+    <div class="modal-body">
+      <div class="ref-modal-icon">${icon('check')}</div>
+      <p class="ref-book-title">${escapeHtml(record.title)}</p>
+      <p class="ref-book-author">${escapeHtml(record.author) || 'بدون مؤلف محدد'}</p>
+
+      <div class="ref-number-box">
+        <div class="ref-number-label">الرقم المرجعي للكتاب</div>
+        <div class="ref-number-value" id="refNumberValue">${escapeHtml(record.referenceNumber)}</div>
+      </div>
+      <p class="ref-hint">دوّن هذا الرقم على الكتاب لتحديد موقعه على الرف لاحقاً</p>
+
+      <div class="form-actions" style="justify-content:center;">
+        <button class="btn btn-outline" id="copyRefBtn">${icon('hash')} نسخ الرقم</button>
+        <button class="btn btn-primary" id="closeRefModal">${icon('check')} تم</button>
+      </div>
+    </div>`;
+
+  openModal(html, {
+    onMount: (overlay) => {
+      overlay.querySelector('#copyRefBtn').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(record.referenceNumber);
+          toast('تم نسخ الرقم المرجعي', 'success', 1800);
+        } catch (_) {
+          toast('تعذّر نسخ الرقم', 'error');
+        }
+      });
+      overlay.querySelector('#closeRefModal').addEventListener('click', closeModal);
+    },
+  });
+}
+
 /* =========================================================
    Add / Edit form
    ========================================================= */
@@ -251,17 +306,26 @@ function renderAddForm(root, editingBook) {
             <datalist id="publishersList">${meta.publishers.map((p) => `<option value="${escapeHtml(p)}">`).join('')}</datalist>
           </div>
 
+          ${isEdit ? `
           <div class="field" id="field-referenceNumber">
-            <label>${icon('hash')} الرقم المرجعي <span class="required">*</span></label>
-            <input type="text" name="referenceNumber" value="${escapeHtml(b.referenceNumber)}" placeholder="مثال: A-102" />
-            <span class="hint">رقم فريد لتحديد موقع الكتاب على الرف</span>
-            <span class="error-msg hidden">هذا الحقل مطلوب</span>
-          </div>
+            <label>${icon('hash')} الرقم المرجعي</label>
+            <input type="text" name="referenceNumber" value="${escapeHtml(b.referenceNumber)}" />
+            <span class="hint">أُنشئ تلقائياً عند الإضافة، ويمكن تعديله يدوياً عند الحاجة فقط</span>
+          </div>` : `
+          <div class="field">
+            <label>${icon('hash')} الرقم المرجعي</label>
+            <input type="text" value="سيُنشأ تلقائياً بعد الحفظ" disabled />
+            <span class="hint">سيظهر لك في نافذة منبثقة بعد الحفظ لتدوينه على الكتاب</span>
+          </div>`}
 
           <div class="field">
-            <label>${icon('tag')} التصنيف</label>
-            <input type="text" name="category" list="categoriesList" value="${escapeHtml(b.category)}" placeholder="مثال: فقه، تاريخ، أدب" />
-            <datalist id="categoriesList">${meta.categories.map((c) => `<option value="${escapeHtml(c)}">`).join('')}</datalist>
+            <label>${icon('tag')} المجال / التصنيف</label>
+            <input type="text" name="category" list="categoriesList" value="${escapeHtml(b.category)}" placeholder="مثال: أدب، لغة عربية، تفسير، فقه" />
+            <datalist id="categoriesList">
+              ${['تفسير', 'حديث', 'فقه', 'عقيدة', 'أدب', 'لغة عربية', 'تاريخ', 'سيرة', 'تزكية وأخلاق', ...meta.categories]
+                .filter((v, i, arr) => v && arr.indexOf(v) === i)
+                .map((c) => `<option value="${escapeHtml(c)}">`).join('')}
+            </datalist>
           </div>
 
           <div class="field">
@@ -314,7 +378,7 @@ function renderAddForm(root, editingBook) {
 
   function validate(data) {
     let valid = true;
-    [['title', 'field-title'], ['author', 'field-author'], ['referenceNumber', 'field-referenceNumber']].forEach(([key, id]) => {
+    [['title', 'field-title'], ['author', 'field-author']].forEach(([key, id]) => {
       const fieldEl = root.querySelector('#' + id);
       const ok = (data[key] || '').trim().length > 0;
       fieldEl.classList.toggle('invalid', !ok);
@@ -335,16 +399,15 @@ function renderAddForm(root, editingBook) {
       if (isEdit) {
         await window.raff.updateBook(editingBook.id, data);
         toast('تم تحديث بيانات الكتاب بنجاح', 'success');
+        await refreshState();
+        renderNavCounts();
+        navigateTo('library');
       } else {
-        await window.raff.addBook(data);
-        toast('تمت إضافة الكتاب إلى المكتبة', 'success');
-      }
-      await refreshState();
-      renderNavCounts();
-      if (andNew) {
-        navigateTo('add');
-      } else {
-        navigateTo(isEdit ? 'library' : 'library');
+        const record = await window.raff.addBook(data);
+        await refreshState();
+        renderNavCounts();
+        navigateTo(andNew ? 'add' : 'library');
+        showSavedBookModal(record, { andNew });
       }
     } catch (err) {
       toast('حدث خطأ أثناء الحفظ: ' + err.message, 'error');
@@ -428,6 +491,20 @@ function renderSettings(root) {
         </div>
         <div class="setting-action">
           <div>
+            <div class="setting-action-title">تصدير كملف نصي (TXT)</div>
+            <div class="setting-action-desc">قائمة مقروءة بجميع الكتب وبياناتها</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="exportTxtBtn">${icon('download')} تصدير</button>
+        </div>
+        <div class="setting-action">
+          <div>
+            <div class="setting-action-title">تصدير كملف PDF</div>
+            <div class="setting-action-desc">تقرير جاهز للطباعة بجدول منسّق لكل الكتب</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="exportPdfBtn">${icon('download')} تصدير</button>
+        </div>
+        <div class="setting-action">
+          <div>
             <div class="setting-action-title">استيراد نسخة احتياطية</div>
             <div class="setting-action-desc">إضافة كتب من ملف JSON محفوظ مسبقاً (بدون تكرار الأرقام المرجعية)</div>
           </div>
@@ -483,6 +560,24 @@ function renderSettings(root) {
   root.querySelector('#exportCsvBtn').addEventListener('click', async () => {
     const res = await window.raff.exportCsv();
     if (res.ok) toast('تم تصدير الملف بصيغة CSV', 'success');
+  });
+  root.querySelector('#exportTxtBtn').addEventListener('click', async () => {
+    const res = await window.raff.exportTxt();
+    if (res.ok) toast('تم تصدير الملف النصي بنجاح', 'success');
+  });
+  root.querySelector('#exportPdfBtn').addEventListener('click', async () => {
+    const btn = root.querySelector('#exportPdfBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'جارٍ التصدير...';
+    try {
+      const res = await window.raff.exportPdf();
+      if (res.ok) toast('تم تصدير ملف PDF بنجاح', 'success');
+      else if (res.error) toast('فشل تصدير PDF: ' + res.error, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
   });
   root.querySelector('#importJsonBtn').addEventListener('click', async () => {
     const res = await window.raff.importJson();

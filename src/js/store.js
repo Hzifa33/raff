@@ -14,10 +14,16 @@ function genId() {
   return 'b_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
+function escapeXml(str) {
+  return (str ?? '').toString()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function emptyDb() {
   return {
     schemaVersion: SCHEMA_VERSION,
     createdAt: nowIso(),
+    nextRefSeq: 1,
     books: [],
   };
 }
@@ -43,6 +49,16 @@ class Store {
       const raw = fs.readFileSync(this.filePath, 'utf-8');
       this.db = JSON.parse(raw);
       if (!this.db.books) this.db.books = [];
+      if (!this.db.nextRefSeq) {
+        // Upgrading an older database: start the counter past any existing
+        // numeric suffixes so newly generated numbers can't collide.
+        let maxSeq = 0;
+        for (const b of this.db.books) {
+          const m = /(\d+)\s*$/.exec(b.referenceNumber || '');
+          if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
+        }
+        this.db.nextRefSeq = maxSeq + 1;
+      }
     } catch (err) {
       // Corrupt file safety net: back it up and start fresh rather than crash.
       try {
@@ -83,13 +99,23 @@ class Store {
     };
   }
 
-  addBook(book) {
+  _nextReferenceNumber() {
+    const seq = this.db.nextRefSeq || 1;
+    this.db.nextRefSeq = seq + 1;
+    return 'raf-' + String(seq).padStart(4, '0');
+  }
+
+  addBook(book, { keepReferenceNumber = false } = {}) {
+    const referenceNumber = (keepReferenceNumber && (book.referenceNumber || '').trim())
+      ? book.referenceNumber.trim()
+      : this._nextReferenceNumber();
+
     const record = {
       id: genId(),
       title: (book.title || '').trim(),
       author: (book.author || '').trim(),
       publisher: (book.publisher || '').trim(),
-      referenceNumber: (book.referenceNumber || '').trim(),
+      referenceNumber,
       category: (book.category || '').trim(),
       edition: (book.edition || '').trim(),
       publishYear: (book.publishYear || '').toString().trim(),
@@ -174,6 +200,57 @@ class Store {
     fs.writeFileSync(filePath, '\uFEFF' + lines.join('\r\n'), 'utf-8');
   }
 
+  exportTxt(filePath) {
+    const lines = this.db.books.map((b, i) => {
+      return [
+        `${i + 1}. ${b.title || 'بدون عنوان'}`,
+        `   المؤلف: ${b.author || '—'}`,
+        `   دار النشر: ${b.publisher || '—'}`,
+        `   المجال/التصنيف: ${b.category || '—'}`,
+        `   الرقم المرجعي: ${b.referenceNumber || '—'}`,
+        `   الطبعة: ${b.edition || '—'}    سنة النشر: ${b.publishYear || '—'}`,
+        `   عدد النسخ: ${b.copiesTotal}    الحالة: ${b.status}${b.status === 'معار' && b.borrowerName ? ' (' + b.borrowerName + ')' : ''}`,
+        b.notes ? `   ملاحظات: ${b.notes}` : null,
+        '',
+      ].filter((l) => l !== null).join('\n');
+    });
+    const header = `فهرس مكتبة رَفّ\nتاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}\nإجمالي الكتب: ${this.db.books.length}\n${'='.repeat(40)}\n\n`;
+    fs.writeFileSync(filePath, header + lines.join('\n'), 'utf-8');
+  }
+
+  buildPrintableHtml() {
+    const rows = this.db.books.map((b, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${escapeXml(b.title)}</td>
+        <td>${escapeXml(b.author)}</td>
+        <td>${escapeXml(b.publisher)}</td>
+        <td>${escapeXml(b.category)}</td>
+        <td class="ltr">${escapeXml(b.referenceNumber)}</td>
+        <td>${b.status}</td>
+      </tr>`).join('');
+
+    return `<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 24px; color: #23150a; }
+  h1 { font-size: 20px; margin-bottom: 2px; }
+  .sub { color: #6b5644; font-size: 12px; margin-bottom: 18px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th, td { border: 1px solid #ddc9a3; padding: 6px 8px; text-align: right; }
+  th { background: #f5eddb; }
+  .ltr { direction: ltr; text-align: left; font-family: monospace; }
+</style></head>
+<body>
+  <h1>فهرس مكتبة رَفّ</h1>
+  <div class="sub">تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')} — إجمالي الكتب: ${this.db.books.length}</div>
+  <table>
+    <thead><tr><th>#</th><th>العنوان</th><th>المؤلف</th><th>دار النشر</th><th>المجال</th><th>الرقم المرجعي</th><th>الحالة</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</body></html>`;
+  }
+
   importJson(filePath) {
     const raw = fs.readFileSync(filePath, 'utf-8');
     const parsed = JSON.parse(raw);
@@ -191,7 +268,9 @@ class Store {
         skipped += 1;
         continue;
       }
-      const record = this.addBook(item);
+      const record = this.addBook(item, { keepReferenceNumber: true });
+      const m = /(\d+)\s*$/.exec(record.referenceNumber || '');
+      if (m) this.db.nextRefSeq = Math.max(this.db.nextRefSeq, parseInt(m[1], 10) + 1);
       if (record.referenceNumber) existingRefs.add(record.referenceNumber);
       added += 1;
     }
