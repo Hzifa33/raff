@@ -76,8 +76,8 @@ function renderBookRow(book) {
         <span class="book-meta-label">دار النشر</span>
         ${escapeHtml(book.publisher) || '—'}
       </div>
-      <div class="book-meta-cell hide-narrow">
-        <span class="book-meta-label">التصنيف</span>
+      <div class="book-meta-cell hide-narrow hide-md">
+        <span class="book-meta-label">المجال</span>
         ${escapeHtml(book.category) || '—'}
       </div>
       <div>${statusBadge}</div>

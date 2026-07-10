@@ -13,6 +13,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 img { max-width: 100%; display: block; }
+
+/* Inline SVG icons must never stretch to fill their container. This is a
+   hard floor: individual components may override the size, but nothing
+   inherits "fill all available space" behaviour by accident. */
+svg { flex-shrink: 0; }
+.rf-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
 button { font-family: inherit; cursor: pointer; }
 input, select, textarea { font-family: inherit; }
 ::selection { background: var(--brass-300); color: var(--ink-900); }
@@ -186,6 +198,8 @@ input, select, textarea { font-family: inherit; }
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   background: var(--bg-app);
 }
 
@@ -196,6 +210,7 @@ input, select, textarea { font-family: inherit; }
   padding: 18px 28px;
   border-bottom: 1px solid var(--border-soft);
   background: var(--bg-panel);
+  flex: 0 0 auto;
 }
 .topbar-titles { flex: 1; min-width: 0; }
 .page-title {
@@ -220,6 +235,8 @@ input, select, textarea { font-family: inherit; }
   border-radius: var(--radius-pill);
   padding: 9px 16px;
   width: 320px;
+  min-width: 0;
+  flex: 0 1 320px;
   transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
 }
 .quick-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(193,154,46,0.15); }
@@ -231,8 +248,10 @@ input, select, textarea { font-family: inherit; }
 .quick-search input::placeholder { color: var(--ink-300); }
 
 .view-scroll {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px 28px 40px;
 }
 
@@ -358,8 +377,9 @@ input, select, textarea { font-family: inherit; }
   color: var(--ink-700);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
+.field label .rf-icon { width: 14px; height: 14px; color: var(--ink-300); }
 .field .required { color: var(--maroon-600); }
 .field input,
 .field select,
@@ -459,7 +479,8 @@ input, select, textarea { font-family: inherit; }
 
 .book-title-cell { min-width: 0; }
 .book-title { font-weight: 700; font-size: 14.5px; color: var(--ink-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.book-ref { font-size: 11.5px; color: var(--ink-300); margin-top: 3px; font-family: var(--font-body); }
+.book-ref { font-size: 11.5px; color: var(--ink-300); margin-top: 3px; font-family: var(--font-body); display: flex; align-items: center; gap: 4px; }
+.book-ref .rf-icon { width: 12px; height: 12px; }
 
 .book-meta-cell { font-size: 13px; color: var(--ink-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .book-meta-label { font-size: 10.5px; color: var(--ink-300); display: block; font-weight: 700; }
@@ -489,7 +510,7 @@ input, select, textarea { font-family: inherit; }
   padding: 60px 20px;
   color: var(--ink-500);
 }
-.empty-state svg { width: 56px; height: 56px; color: var(--brass-500); margin-bottom: 14px; opacity: 0.8; }
+.empty-state > svg { width: 56px; height: 56px; color: var(--brass-500); margin-bottom: 14px; opacity: 0.8; }
 .empty-state h3 { font-family: var(--font-display); margin: 0 0 6px; color: var(--ink-900); font-size: 19px; }
 .empty-state p { margin: 0 0 18px; font-size: 13.5px; max-width: 340px; }
 
@@ -634,12 +655,27 @@ kbd {
 /* =========================================================
    Responsive
    ========================================================= */
+@media (max-width: 1280px) {
+  .book-row { grid-template-columns: 6px 1.4fr 1fr 1fr 0.8fr auto; }
+  .book-row .book-meta-cell.hide-md { display: none; }
+}
+
 @media (max-width: 1180px) {
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .settings-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
   .field.span-2 { grid-column: span 1; }
   .book-row { grid-template-columns: 6px 1.4fr 1fr auto; }
   .book-row .book-meta-cell.hide-narrow { display: none; }
+  .topbar { flex-wrap: wrap; }
+  .quick-search { flex: 1 1 240px; width: auto; order: 3; }
+}
+
+@media (max-width: 900px) {
+  :root { --sidebar-width: 220px; }
+  .view-scroll { padding: 18px 16px 32px; }
+  .stat-grid { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: 90px 1fr 34px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

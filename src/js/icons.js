@@ -28,6 +28,22 @@ const ICONS = {
   note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>',
 };
 
-function icon(name, extraClass) {
-  return ICONS[name] || '';
+/**
+ * Returns an inline SVG string with explicit dimensions.
+ *
+ * An <svg> with only a viewBox and no width/height will stretch to fill its
+ * container, which silently destroys any layout it is dropped into. Every
+ * icon therefore ships with a concrete size and a shared class that CSS can
+ * override where a different size is wanted.
+ *
+ * @param {string} name  key in ICONS
+ * @param {number} size  pixel size for both width and height (default 16)
+ */
+function icon(name, size = 16) {
+  const svg = ICONS[name];
+  if (!svg) return '';
+  return svg.replace(
+    '<svg ',
+    `<svg class="rf-icon" width="${size}" height="${size}" `
+  );
 }
