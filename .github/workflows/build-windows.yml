@@ -6,13 +6,9 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: read
-
 jobs:
   build-windows:
     runs-on: windows-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,12 +17,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Build Windows installer without publishing
+      - name: Build Windows installer (no publish)
         run: npm run dist:win
 
       - name: Upload installer artifact
@@ -34,4 +29,3 @@ jobs:
         with:
           name: raff-windows-installer
           path: release/*.exe
-          if-no-files-found: error
