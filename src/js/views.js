@@ -58,34 +58,119 @@ function sortBooks(books, sortKey) {
 function renderBookRow(book) {
   const spine = spineColorFor(book.category || book.author);
   const statusBadge = book.status === 'معار'
-    ? `<span class="badge badge-borrowed">معار${book.borrowerName ? ' — ' + escapeHtml(book.borrowerName) : ''}</span>`
+    ? `<span class="badge badge-borrowed">معار</span>`
     : `<span class="badge badge-available">متاح</span>`;
 
   return `
-    <div class="book-row" data-id="${book.id}">
+    <div class="book-row" data-id="${book.id}" data-action="details" role="button" tabindex="0">
       <div class="spine" style="background:${spine};"></div>
       <div class="book-title-cell">
         <div class="book-title" title="${escapeHtml(book.title)}">${escapeHtml(book.title) || 'بدون عنوان'}</div>
-        <div class="book-ref">${icon('hash')} ${escapeHtml(book.referenceNumber) || 'بدون رقم مرجعي'}</div>
+        <div class="book-ref">${icon('hash')}<span>${escapeHtml(book.referenceNumber)}</span></div>
       </div>
       <div class="book-meta-cell">
         <span class="book-meta-label">المؤلف</span>
-        ${escapeHtml(book.author) || '—'}
+        <span class="book-meta-value">${escapeHtml(book.author) || '—'}</span>
       </div>
       <div class="book-meta-cell hide-narrow">
         <span class="book-meta-label">دار النشر</span>
-        ${escapeHtml(book.publisher) || '—'}
+        <span class="book-meta-value">${escapeHtml(book.publisher) || '—'}</span>
       </div>
       <div class="book-meta-cell hide-narrow hide-md">
         <span class="book-meta-label">المجال</span>
-        ${escapeHtml(book.category) || '—'}
+        <span class="book-meta-value">${escapeHtml(book.category) || '—'}</span>
       </div>
-      <div>${statusBadge}</div>
+      <div class="book-status-cell">
+        ${statusBadge}
+        ${book.status === 'معار' && book.borrowerName ? `<span class="borrower-name">${escapeHtml(book.borrowerName)}</span>` : ''}
+      </div>
       <div class="row-actions">
-        <button class="btn btn-outline btn-icon" data-action="edit" data-id="${book.id}" title="تعديل">${icon('edit')}</button>
-        <button class="btn btn-outline btn-icon" data-action="delete" data-id="${book.id}" title="حذف">${icon('trash')}</button>
+        <button class="btn btn-outline btn-icon" data-action="edit" data-id="${book.id}" title="تعديل" aria-label="تعديل">${icon('edit')}</button>
+        <button class="btn btn-outline btn-icon" data-action="delete" data-id="${book.id}" title="حذف" aria-label="حذف">${icon('trash')}</button>
       </div>
     </div>`;
+}
+
+/* =========================================================
+   Book details modal
+   ========================================================= */
+function showBookDetails(book) {
+  const spine = spineColorFor(book.category || book.author);
+  const row = (label, value, iconName) => value
+    ? `<div class="detail-row">
+         <span class="detail-label">${icon(iconName)} ${label}</span>
+         <span class="detail-value">${escapeHtml(value)}</span>
+       </div>`
+    : '';
+
+  const html = `
+    <div class="detail-header" style="border-top: 4px solid ${spine};">
+      <div class="detail-title-wrap">
+        <h3 class="detail-title">${escapeHtml(book.title) || 'بدون عنوان'}</h3>
+        <p class="detail-author">${escapeHtml(book.author) || 'مؤلف غير محدد'}</p>
+      </div>
+      <button class="btn btn-ghost btn-icon" id="detailClose" aria-label="إغلاق">${icon('x')}</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-ref">
+        <span class="detail-ref-label">الرقم المرجعي</span>
+        <span class="detail-ref-value">${escapeHtml(book.referenceNumber)}</span>
+      </div>
+
+      <div class="detail-grid">
+        ${row('دار النشر', book.publisher, 'building')}
+        ${row('المجال / التصنيف', book.category, 'tag')}
+        ${row('الطبعة', book.edition, 'layers')}
+        ${row('سنة النشر', book.publishYear, 'calendar')}
+        ${row('عدد النسخ', String(book.copiesTotal), 'copies')}
+        <div class="detail-row">
+          <span class="detail-label">${icon('check')} الحالة</span>
+          <span class="detail-value">
+            ${book.status === 'معار'
+              ? `<span class="badge badge-borrowed">معار</span>${book.borrowerName ? ' <span class="borrower-name">' + escapeHtml(book.borrowerName) + '</span>' : ''}`
+              : `<span class="badge badge-available">متاح</span>`}
+          </span>
+        </div>
+      </div>
+
+      ${book.notes ? `<div class="detail-notes"><span class="detail-label">${icon('note')} ملاحظات</span><p>${escapeHtml(book.notes)}</p></div>` : ''}
+
+      <div class="form-actions" style="position:static; margin:18px 0 0; padding:14px 0 0; border-radius:0;">
+        <button class="btn btn-primary" id="detailEdit">${icon('edit')} تعديل البيانات</button>
+        <button class="btn btn-outline" id="detailCopyRef">${icon('hash')} نسخ الرقم المرجعي</button>
+        <button class="btn btn-danger" id="detailDelete">${icon('trash')} حذف</button>
+      </div>
+    </div>`;
+
+  openModal(html, {
+    onMount: (overlay) => {
+      overlay.querySelector('#detailClose').addEventListener('click', closeModal);
+      overlay.querySelector('#detailEdit').addEventListener('click', () => {
+        closeModal();
+        navigateTo('edit', { book });
+      });
+      overlay.querySelector('#detailCopyRef').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(book.referenceNumber);
+          toast('تم نسخ الرقم المرجعي', 'success', 1800);
+        } catch (_) { toast('تعذّر نسخ الرقم', 'error'); }
+      });
+      overlay.querySelector('#detailDelete').addEventListener('click', async () => {
+        closeModal();
+        const ok = await confirmModal({
+          title: 'حذف هذا الكتاب؟',
+          message: `سيتم حذف "${escapeHtml(book.title)}" نهائياً من سجل المكتبة.`,
+          confirmLabel: 'حذف',
+        });
+        if (!ok) return;
+        await window.raff.removeBook(book.id);
+        await refreshState();
+        renderNavCounts();
+        renderRoute();
+        toast('تم حذف الكتاب', 'success');
+      });
+    },
+  });
 }
 
 function renderEmptyState({ title, desc, actionLabel, actionRoute }) {
@@ -103,66 +188,83 @@ function renderEmptyState({ title, desc, actionLabel, actionRoute }) {
    ========================================================= */
 function renderDashboard(root) {
   const { stats, books } = RAFF_STATE;
-  const recent = sortBooks(books, 'newest').slice(0, 5);
+  const recent = sortBooks(books, 'newest').slice(0, 6);
   const topCategories = Object.entries(stats.byCategory || {})
     .sort((a, b) => b[1] - a[1]).slice(0, 6);
   const maxCat = Math.max(1, ...topCategories.map((c) => c[1]));
+  const isEmpty = books.length === 0;
+
+  const statCard = (value, label, iconName, variant = '') => `
+    <div class="stat-card ${variant}">
+      <div class="stat-icon">${icon(iconName, 18)}</div>
+      <div>
+        <div class="stat-value">${value ?? 0}</div>
+        <div class="stat-label">${label}</div>
+      </div>
+    </div>`;
+
+  if (isEmpty) {
+    root.innerHTML = `
+      <div class="welcome-panel">
+        <div class="welcome-mark">${icon('stack', 44)}</div>
+        <h2 class="welcome-title">أهلاً بك في رَفّ</h2>
+        <p class="welcome-desc">
+          مكتبتك فارغة حتى الآن. أضف أول كتاب وسيمنحه النظام رقماً مرجعياً تلقائياً
+          لتدوّنه عليه، ثم يمكنك البحث في مكتبتك كاملة في أي وقت.
+        </p>
+        <div class="welcome-actions">
+          <button class="btn btn-primary" data-nav="add">${icon('plus')} إضافة أول كتاب</button>
+          <button class="btn btn-outline" data-nav="settings">${icon('upload')} استيراد نسخة احتياطية</button>
+        </div>
+        <div class="welcome-tips">
+          <div class="welcome-tip">${icon('hash', 14)}<span>رقم مرجعي تلقائي لكل كتاب</span></div>
+          <div class="welcome-tip">${icon('search', 14)}<span>بحث لا يتأثر باختلاف الهمزات</span></div>
+          <div class="welcome-tip">${icon('download', 14)}<span>تصدير PDF وExcel وJSON</span></div>
+        </div>
+      </div>`;
+    return;
+  }
 
   root.innerHTML = `
     <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-value">${stats.totalBooks ?? 0}</div>
-        <div class="stat-label">إجمالي الكتب</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${stats.totalAuthors ?? 0}</div>
-        <div class="stat-label">عدد المؤلفين</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${stats.totalPublishers ?? 0}</div>
-        <div class="stat-label">دور النشر</div>
-      </div>
-      <div class="stat-card stat-danger">
-        <div class="stat-value">${stats.borrowed ?? 0}</div>
-        <div class="stat-label">كتب معارة حالياً</div>
-      </div>
+      ${statCard(stats.totalBooks, 'إجمالي الكتب', 'book')}
+      ${statCard(stats.totalAuthors, 'عدد المؤلفين', 'user')}
+      ${statCard(stats.totalPublishers, 'دور النشر', 'building')}
+      ${statCard(stats.borrowed, 'كتب معارة حالياً', 'copies', 'stat-danger')}
     </div>
 
-    <div class="panel">
-      <div class="panel-header">
-        <div>
-          <h2 class="panel-title">أحدث الإضافات</h2>
-          <p class="panel-desc">آخر الكتب التي أُضيفت إلى المكتبة</p>
+    <div class="dash-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">أحدث الإضافات</h2>
+            <p class="panel-desc">اضغط على أي كتاب لعرض بياناته كاملة</p>
+          </div>
+          <button class="btn btn-outline btn-sm" data-nav="library">عرض الكل</button>
         </div>
-        <button class="btn btn-outline btn-sm" data-nav="library">عرض السجل الكامل</button>
+        <div class="book-list">
+          ${recent.map(renderBookRow).join('')}
+        </div>
       </div>
-      <div class="book-list">
-        ${recent.length ? recent.map(renderBookRow).join('') : renderEmptyState({
-          title: 'المكتبة فارغة حتى الآن',
-          desc: 'ابدأ ببناء فهرسك عبر إضافة أول كتاب.',
-          actionLabel: 'إضافة كتاب جديد',
-          actionRoute: 'add',
-        })}
+
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">توزيع المجالات</h2>
+            <p class="panel-desc">أكثر التصنيفات عدداً</p>
+          </div>
+        </div>
+        ${topCategories.length ? `
+        <div class="bar-chart">
+          ${topCategories.map(([cat, count]) => `
+            <div class="bar-row">
+              <div class="bar-row-label" title="${escapeHtml(cat)}">${escapeHtml(cat)}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${(count / maxCat) * 100}%;"></div></div>
+              <div class="bar-row-value">${count}</div>
+            </div>`).join('')}
+        </div>` : `<p class="text-muted" style="font-size:12.5px;">لم تُضف مجالات بعد.</p>`}
       </div>
     </div>
-
-    ${topCategories.length ? `
-    <div class="panel">
-      <div class="panel-header">
-        <div>
-          <h2 class="panel-title">توزيع التصنيفات</h2>
-          <p class="panel-desc">أكثر التصنيفات عدداً في المكتبة</p>
-        </div>
-      </div>
-      <div class="bar-chart">
-        ${topCategories.map(([cat, count]) => `
-          <div class="bar-row">
-            <div class="bar-row-label">${escapeHtml(cat)}</div>
-            <div class="bar-track"><div class="bar-fill" style="width:${(count / maxCat) * 100}%;"></div></div>
-            <div class="bar-row-value">${count}</div>
-          </div>`).join('')}
-      </div>
-    </div>` : ''}
   `;
 }
 
@@ -277,11 +379,11 @@ function renderAddForm(root, editingBook) {
   const meta = RAFF_STATE.meta;
 
   root.innerHTML = `
-    <div class="panel" style="max-width:840px;">
+    <div class="panel form-panel">
       <div class="panel-header">
         <div>
           <h2 class="panel-title">${isEdit ? 'تعديل بيانات الكتاب' : 'إضافة كتاب جديد'}</h2>
-          <p class="panel-desc">الحقول المميزة بعلامة * إلزامية</p>
+          <p class="panel-desc">الحقول المميزة بعلامة <span class="required">*</span> إلزامية، وبقية الحقول اختيارية</p>
         </div>
       </div>
 
@@ -289,7 +391,7 @@ function renderAddForm(root, editingBook) {
         <div class="form-grid">
           <div class="field span-2" id="field-title">
             <label>${icon('book')} اسم الكتاب <span class="required">*</span></label>
-            <input type="text" name="title" value="${escapeHtml(b.title)}" placeholder="مثال: مقدمة ابن خلدون" />
+            <input type="text" name="title" value="${escapeHtml(b.title)}" placeholder="مثال: مقدمة ابن خلدون" autofocus />
             <span class="error-msg hidden">هذا الحقل مطلوب</span>
           </div>
 
@@ -300,33 +402,31 @@ function renderAddForm(root, editingBook) {
             <span class="error-msg hidden">هذا الحقل مطلوب</span>
           </div>
 
-          <div class="field" id="field-publisher">
+          <div class="field">
             <label>${icon('building')} دار النشر</label>
             <input type="text" name="publisher" list="publishersList" value="${escapeHtml(b.publisher)}" placeholder="اسم دار النشر" />
             <datalist id="publishersList">${meta.publishers.map((p) => `<option value="${escapeHtml(p)}">`).join('')}</datalist>
           </div>
 
-          ${isEdit ? `
-          <div class="field" id="field-referenceNumber">
-            <label>${icon('hash')} الرقم المرجعي</label>
-            <input type="text" name="referenceNumber" value="${escapeHtml(b.referenceNumber)}" />
-            <span class="hint">أُنشئ تلقائياً عند الإضافة، ويمكن تعديله يدوياً عند الحاجة فقط</span>
-          </div>` : `
-          <div class="field">
-            <label>${icon('hash')} الرقم المرجعي</label>
-            <input type="text" value="سيُنشأ تلقائياً بعد الحفظ" disabled />
-            <span class="hint">سيظهر لك في نافذة منبثقة بعد الحفظ لتدوينه على الكتاب</span>
-          </div>`}
-
           <div class="field">
             <label>${icon('tag')} المجال / التصنيف</label>
-            <input type="text" name="category" list="categoriesList" value="${escapeHtml(b.category)}" placeholder="مثال: أدب، لغة عربية، تفسير، فقه" />
+            <input type="text" name="category" list="categoriesList" value="${escapeHtml(b.category)}" placeholder="مثال: أدب، تفسير، فقه" />
             <datalist id="categoriesList">
               ${['تفسير', 'حديث', 'فقه', 'عقيدة', 'أدب', 'لغة عربية', 'تاريخ', 'سيرة', 'تزكية وأخلاق', ...meta.categories]
                 .filter((v, i, arr) => v && arr.indexOf(v) === i)
                 .map((c) => `<option value="${escapeHtml(c)}">`).join('')}
             </datalist>
           </div>
+
+          ${isEdit ? `
+          <div class="field">
+            <label>${icon('hash')} الرقم المرجعي</label>
+            <input type="text" name="referenceNumber" value="${escapeHtml(b.referenceNumber)}" />
+          </div>` : `
+          <div class="field">
+            <label>${icon('hash')} الرقم المرجعي</label>
+            <input type="text" value="يُنشأ تلقائياً بعد الحفظ" disabled />
+          </div>`}
 
           <div class="field">
             <label>${icon('layers')} الطبعة</label>
@@ -344,28 +444,29 @@ function renderAddForm(root, editingBook) {
           </div>
 
           <div class="field">
-            <label>حالة الكتاب</label>
+            <label>${icon('check')} حالة الكتاب</label>
             <select name="status" id="statusSelect">
               <option value="متاح" ${b.status !== 'معار' ? 'selected' : ''}>متاح</option>
               <option value="معار" ${b.status === 'معار' ? 'selected' : ''}>معار</option>
             </select>
           </div>
 
-          <div class="field" id="borrowerField" style="${b.status === 'معار' ? '' : 'display:none;'}">
+          <div class="field" id="borrowerField" style="${b.status === 'معار' ? '' : 'visibility:hidden;'}">
             <label>${icon('user')} اسم المستعير</label>
             <input type="text" name="borrowerName" value="${escapeHtml(b.borrowerName)}" placeholder="اسم الشخص المستعير" />
           </div>
 
-          <div class="field span-2">
+          <div class="field span-3">
             <label>${icon('note')} ملاحظات</label>
-            <textarea name="notes" placeholder="أي تفاصيل إضافية عن الكتاب أو نسخته...">${escapeHtml(b.notes)}</textarea>
+            <textarea name="notes" rows="2" placeholder="أي تفاصيل إضافية عن الكتاب أو نسخته...">${escapeHtml(b.notes)}</textarea>
           </div>
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary">${icon('check')} ${isEdit ? 'حفظ التعديلات' : 'إضافة إلى المكتبة'}</button>
-          <button type="button" class="btn btn-ghost" id="cancelForm">إلغاء</button>
+          <button type="submit" class="btn btn-primary">${icon('check')} ${isEdit ? 'حفظ التعديلات' : 'حفظ الكتاب'}</button>
           ${!isEdit ? `<button type="button" class="btn btn-outline" id="saveAndNew">${icon('plus')} حفظ وإضافة آخر</button>` : ''}
+          <button type="button" class="btn btn-ghost" id="cancelForm">إلغاء</button>
+          <span class="form-hint-inline">${isEdit ? '' : 'سيظهر الرقم المرجعي في نافذة بعد الحفظ'}</span>
         </div>
       </form>
     </div>
@@ -373,7 +474,10 @@ function renderAddForm(root, editingBook) {
 
   const form = root.querySelector('#bookForm');
   form.querySelector('#statusSelect').addEventListener('change', (e) => {
-    root.querySelector('#borrowerField').style.display = e.target.value === 'معار' ? '' : 'none';
+    const bf = root.querySelector('#borrowerField');
+    const borrowed = e.target.value === 'معار';
+    bf.style.visibility = borrowed ? 'visible' : 'hidden';
+    if (borrowed) bf.querySelector('input').focus();
   });
 
   function validate(data) {

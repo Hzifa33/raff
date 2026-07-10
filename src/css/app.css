@@ -51,9 +51,14 @@ input, select, textarea { font-family: inherit; }
 .app-shell {
   display: grid;
   grid-template-columns: var(--sidebar-width) 1fr;
+  /* minmax(0, 1fr) keeps the single row from growing to fit its content;
+     without it, a tall form pushes .main past the bottom of the window. */
+  grid-template-rows: minmax(0, 1fr);
   height: 100vh;
   width: 100vw;
+  overflow: hidden;
 }
+.app-shell > * { min-height: 0; min-width: 0; }
 
 /* ---- Sidebar ---- */
 .sidebar {
@@ -261,14 +266,17 @@ input, select, textarea { font-family: inherit; }
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 .stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   background: var(--bg-panel-raised);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
-  padding: 18px 20px;
+  padding: 16px 18px;
   box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
@@ -281,14 +289,62 @@ input, select, textarea { font-family: inherit; }
 }
 .stat-card.stat-danger::before { background: var(--danger); }
 .stat-card.stat-success::before { background: var(--success); }
+
+.stat-icon {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: rgba(193,154,46,0.12);
+  color: var(--accent-strong);
+  display: flex; align-items: center; justify-content: center;
+}
+.stat-card.stat-danger .stat-icon { background: rgba(115,46,46,0.1); color: var(--maroon-600); }
+.stat-card.stat-success .stat-icon { background: rgba(75,99,80,0.12); color: var(--sage-600); }
+
 .stat-value {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--ink-900);
   line-height: 1;
 }
-.stat-label { font-size: 12.5px; color: var(--text-secondary); margin-top: 8px; font-weight: 700; }
+.stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 5px; font-weight: 700; }
+
+/* ---- Dashboard two-column layout ---- */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ---- Welcome / first-run screen ---- */
+.welcome-panel {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 48px 32px;
+  text-align: center;
+  max-width: 640px;
+  margin: 24px auto;
+}
+.welcome-mark {
+  width: 84px; height: 84px; margin: 0 auto 20px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--parchment-200), var(--parchment-100));
+  border: 1px solid var(--border-soft);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent-strong);
+}
+.welcome-title { font-family: var(--font-display); font-size: 26px; font-weight: 700; margin: 0 0 10px; color: var(--ink-900); }
+.welcome-desc { font-size: 13.5px; line-height: 1.85; color: var(--text-secondary); margin: 0 auto 24px; max-width: 440px; }
+.welcome-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px; }
+.welcome-tips {
+  display: flex; justify-content: center; gap: 22px; flex-wrap: wrap;
+  padding-top: 22px; border-top: 1px dashed var(--border-soft);
+}
+.welcome-tip { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--ink-500); font-weight: 700; }
+.welcome-tip .rf-icon { color: var(--accent-strong); }
 
 .panel {
   background: var(--bg-panel-raised);
@@ -366,31 +422,33 @@ input, select, textarea { font-family: inherit; }
    ========================================================= */
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px 18px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 14px;
 }
-.field { display: flex; flex-direction: column; gap: 6px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .field.span-2 { grid-column: span 2; }
+.field.span-3 { grid-column: span 3; }
 .field label {
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--ink-700);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
-.field label .rf-icon { width: 14px; height: 14px; color: var(--ink-300); }
+.field label .rf-icon { width: 13px; height: 13px; color: var(--ink-300); }
 .field .required { color: var(--maroon-600); }
 .field input,
 .field select,
 .field textarea {
   border: 1px solid var(--border-soft);
   background: var(--parchment-050);
-  border-radius: var(--radius-md);
-  padding: 11px 13px;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  padding: 8px 11px;
+  font-size: 13.5px;
   color: var(--ink-900);
   outline: none;
+  min-width: 0;
   transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease), background 0.18s var(--ease);
 }
 .field input:focus, .field select:focus, .field textarea:focus {
@@ -398,18 +456,38 @@ input, select, textarea { font-family: inherit; }
   background: var(--white);
   box-shadow: 0 0 0 3px rgba(193,154,46,0.15);
 }
-.field textarea { resize: vertical; min-height: 78px; }
-.field .hint { font-size: 11px; color: var(--ink-300); }
+.field input:disabled {
+  background: var(--parchment-200);
+  color: var(--ink-300);
+  cursor: not-allowed;
+}
+.field textarea { resize: vertical; min-height: 54px; }
+.field .hint { font-size: 10.5px; color: var(--ink-300); line-height: 1.4; }
 .field.invalid input, .field.invalid select { border-color: var(--danger); }
-.field .error-msg { font-size: 11.5px; color: var(--danger); font-weight: 700; }
+.field .error-msg { font-size: 11px; color: var(--danger); font-weight: 700; }
 
+/* The action bar sticks to the bottom of the scroll area so "حفظ" is
+   reachable without scrolling, no matter how tall the form grows. */
 .form-actions {
+  position: sticky;
+  bottom: -24px;
   display: flex;
   justify-content: flex-start;
   gap: 10px;
-  margin-top: 22px;
-  padding-top: 18px;
-  border-top: 1px dashed var(--border-soft);
+  margin: 16px -22px -22px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg-panel-raised);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  z-index: 3;
+}
+
+.form-panel { max-width: 1000px; padding-bottom: 0; }
+.form-hint-inline {
+  margin-inline-start: auto;
+  align-self: center;
+  font-size: 11.5px;
+  color: var(--ink-300);
 }
 
 /* =========================================================
@@ -456,42 +534,49 @@ input, select, textarea { font-family: inherit; }
 /* =========================================================
    Book table / cards
    ========================================================= */
-.book-list { display: flex; flex-direction: column; gap: 10px; }
+.book-list { display: flex; flex-direction: column; gap: 8px; }
 
 .book-row {
   display: grid;
-  grid-template-columns: 6px 1.4fr 1fr 1fr 0.8fr 0.7fr auto;
+  grid-template-columns: 5px 1.5fr 1fr 1fr 0.8fr 130px auto;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   background: var(--bg-panel-raised);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
+  padding: 11px 14px;
+  cursor: pointer;
   transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease), border-color .18s var(--ease);
 }
 .book-row:hover { box-shadow: var(--shadow-md); border-color: var(--accent-soft); transform: translateY(-1px); }
+.book-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .spine {
   align-self: stretch;
   border-radius: 3px;
-  min-height: 44px;
+  min-height: 38px;
 }
 
 .book-title-cell { min-width: 0; }
-.book-title { font-weight: 700; font-size: 14.5px; color: var(--ink-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.book-ref { font-size: 11.5px; color: var(--ink-300); margin-top: 3px; font-family: var(--font-body); display: flex; align-items: center; gap: 4px; }
-.book-ref .rf-icon { width: 12px; height: 12px; }
+.book-title { font-weight: 700; font-size: 14px; color: var(--ink-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.book-ref { font-size: 11px; color: var(--ink-300); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+.book-ref .rf-icon { width: 11px; height: 11px; }
+.book-ref span { direction: ltr; unicode-bidi: isolate; }
 
-.book-meta-cell { font-size: 13px; color: var(--ink-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.book-meta-label { font-size: 10.5px; color: var(--ink-300); display: block; font-weight: 700; }
+.book-meta-cell { min-width: 0; }
+.book-meta-label { font-size: 10px; color: var(--ink-300); display: block; font-weight: 700; margin-bottom: 1px; }
+.book-meta-value { font-size: 12.5px; color: var(--ink-700); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.book-status-cell { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+.borrower-name { font-size: 10.5px; color: var(--ink-300); }
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 5px 11px;
+  padding: 4px 10px;
   border-radius: var(--radius-pill);
   width: fit-content;
 }
@@ -500,6 +585,55 @@ input, select, textarea { font-family: inherit; }
 .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 .row-actions { display: flex; gap: 6px; }
+
+/* Rows shown inside the narrow dashboard column can't fit every column,
+   so they drop secondary metadata independently of the window width. */
+.dash-grid .book-row { grid-template-columns: 5px 1.6fr 1fr 110px auto; }
+.dash-grid .book-row .hide-narrow { display: none; }
+
+/* ---- Book details modal ---- */
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.detail-title-wrap { min-width: 0; }
+.detail-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin: 0; color: var(--ink-900); }
+.detail-author { font-size: 12.5px; color: var(--text-secondary); margin: 3px 0 0; }
+
+.detail-ref {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--walnut-900);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.detail-ref-label { font-size: 11.5px; color: var(--text-onDark-muted); font-weight: 700; }
+.detail-ref-value {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 700; color: var(--brass-300);
+  direction: ltr; unicode-bidi: isolate;
+}
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 20px; }
+.detail-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--parchment-200);
+}
+.detail-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--ink-500); white-space: nowrap; }
+.detail-label .rf-icon { width: 13px; height: 13px; color: var(--ink-300); }
+.detail-value { font-size: 13px; color: var(--ink-900); text-align: end; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.detail-notes { margin-top: 14px; }
+.detail-notes p {
+  margin: 6px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--ink-700);
+  background: var(--parchment-100); border-radius: var(--radius-md); padding: 10px 12px;
+}
 
 .empty-state {
   display: flex;
@@ -656,17 +790,19 @@ kbd {
    Responsive
    ========================================================= */
 @media (max-width: 1280px) {
-  .book-row { grid-template-columns: 6px 1.4fr 1fr 1fr 0.8fr auto; }
+  .book-row { grid-template-columns: 5px 1.5fr 1fr 1fr 130px auto; }
   .book-row .book-meta-cell.hide-md { display: none; }
 }
 
 @media (max-width: 1180px) {
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-grid { grid-template-columns: 1fr; }
   .settings-grid { grid-template-columns: 1fr; }
-  .form-grid { grid-template-columns: 1fr; }
-  .field.span-2 { grid-column: span 1; }
-  .book-row { grid-template-columns: 6px 1.4fr 1fr auto; }
+  .form-grid { grid-template-columns: repeat(2, 1fr); }
+  .field.span-3 { grid-column: span 2; }
+  .book-row { grid-template-columns: 5px 1.5fr 1fr 120px auto; }
   .book-row .book-meta-cell.hide-narrow { display: none; }
+  .detail-grid { grid-template-columns: 1fr; }
   .topbar { flex-wrap: wrap; }
   .quick-search { flex: 1 1 240px; width: auto; order: 3; }
 }
@@ -675,6 +811,8 @@ kbd {
   :root { --sidebar-width: 220px; }
   .view-scroll { padding: 18px 16px 32px; }
   .stat-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .field.span-2, .field.span-3 { grid-column: span 1; }
   .bar-row { grid-template-columns: 90px 1fr 34px; }
 }
 

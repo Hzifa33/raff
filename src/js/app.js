@@ -76,6 +76,23 @@ document.addEventListener('click', async (e) => {
     toast('تم حذف الكتاب', 'success');
     return;
   }
+
+  // Clicking anywhere else on a row opens its details.
+  const row = e.target.closest('.book-row[data-action="details"]');
+  if (row) {
+    const book = RAFF_STATE.books.find((b) => b.id === row.dataset.id);
+    if (book) showBookDetails(book);
+  }
+});
+
+/* ---- Keyboard access for book rows ---- */
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const row = e.target.closest?.('.book-row[data-action="details"]');
+  if (!row) return;
+  e.preventDefault();
+  const book = RAFF_STATE.books.find((b) => b.id === row.dataset.id);
+  if (book) showBookDetails(book);
 });
 
 /* ---- Topbar quick search: jumps to the search view ---- */
