@@ -8,7 +8,7 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win",
+    "dist:win": "electron-builder --win --publish never",
     "dist:linux": "electron-builder --linux"
   },
   "devDependencies": {
@@ -25,9 +25,18 @@
       "assets/**/*",
       "!assets/*-source.*"
     ],
-    "directories": { "output": "release" },
+    "directories": {
+      "output": "release"
+    },
     "win": {
-      "target": [ { "target": "nsis", "arch": ["x64"] } ],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "assets/icon.ico"
     },
     "nsis": {
@@ -38,7 +47,9 @@
       "shortcutName": "رَفّ"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "icon": "assets/icon.png",
       "category": "Office"
     }
