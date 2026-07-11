@@ -14,18 +14,20 @@
 <p><em>أضف الكتاب مرّة… ثم اعثر عليه في ثوانٍ.</em></p>
 
 <p>
-  <img src="https://img.shields.io/badge/الإصدار-0.5.0-8B5E34?style=for-the-badge&labelColor=3E2C1C" alt="الإصدار">
-  <img src="https://img.shields.io/badge/المنصّة-Windows-2B6CB0?style=for-the-badge&labelColor=1A365D" alt="المنصّة">
+  <img src="https://img.shields.io/badge/version-0.5.0-8B5E34?style=for-the-badge&labelColor=3E2C1C" alt="version">
+  <img src="https://img.shields.io/badge/platform-Windows-2B6CB0?style=for-the-badge&labelColor=1A365D" alt="platform">
   <img src="https://img.shields.io/badge/Electron-31-44566C?style=for-the-badge&logo=electron&logoColor=white&labelColor=2D3748" alt="Electron">
-  <img src="https://img.shields.io/badge/الرخصة-MIT-2F855A?style=for-the-badge&labelColor=22543D" alt="الرخصة">
+  <img src="https://img.shields.io/badge/license-MIT-2F855A?style=for-the-badge&labelColor=22543D" alt="license">
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/يعمل_بلا_إنترنت-✔-4B6350?style=flat-square&labelColor=2F3E33" alt="أوفلاين">
-  <img src="https://img.shields.io/badge/واجهة_عربية_RTL-✔-C19A2E?style=flat-square&labelColor=6B5518" alt="RTL">
-  <img src="https://img.shields.io/badge/بلا_إعلانات_ولا_تتبّع-✔-732E2E?style=flat-square&labelColor=451B1B" alt="خصوصية">
-  <img src="https://img.shields.io/badge/خطوط_مدمجة-✔-44566C?style=flat-square&labelColor=2D3748" alt="خطوط">
+  <img src="https://img.shields.io/badge/Offline_First-✓-4B6350?style=flat-square&labelColor=2F3E33" alt="offline">
+  <img src="https://img.shields.io/badge/Arabic_RTL_UI-✓-C19A2E?style=flat-square&labelColor=6B5518" alt="rtl">
+  <img src="https://img.shields.io/badge/No_Ads_·_No_Tracking-✓-732E2E?style=flat-square&labelColor=451B1B" alt="privacy">
+  <img src="https://img.shields.io/badge/Bundled_Fonts-✓-44566C?style=flat-square&labelColor=2D3748" alt="fonts">
 </p>
+
+<p dir="rtl"><sub>يعمل بلا إنترنت · واجهة عربية كاملة (RTL) · بلا إعلانات ولا تتبّع · خطوط مدمجة</sub></p>
 
 <br>
 
@@ -140,7 +142,7 @@
 
 <div align="center" dir="ltr">
 
-[![تحميل رَفّ](https://img.shields.io/badge/⬇_تحميل_آخر_إصدار-GitHub_Releases-8B5E34?style=for-the-badge&labelColor=3E2C1C)](https://github.com/Hzifa33/raff/releases/latest)
+[![Download Raff](https://img.shields.io/badge/⬇_Download_Latest_Release-GitHub-8B5E34?style=for-the-badge&labelColor=3E2C1C)](https://github.com/Hzifa33/raff/releases/latest)
 
 </div>
 
@@ -310,7 +312,7 @@ npm run dist:win
 
 صُنع بواسطة **Hzifa33**
 
-[![الموقع الشخصي](https://img.shields.io/badge/الموقع_الشخصي-Hzifa33.github.io-8B5E34?style=for-the-badge&logo=github&logoColor=white&labelColor=3E2C1C)](https://Hzifa33.github.io)
+[![Personal Website](https://img.shields.io/badge/Personal_Website-Hzifa33.github.io-8B5E34?style=for-the-badge&logo=github&logoColor=white&labelColor=3E2C1C)](https://Hzifa33.github.io)
 
 <br>
 
