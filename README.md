@@ -87,24 +87,14 @@
 استخدم قيمة **SHA256** التالية للتحقق من أن الملف الذي حمّلته هو نفس الملف المنشور رسميًا:
 
 ```text
-ضع هنا قيمة SHA256 الناتجة من الأمر أدناه
+b4edfb2fff28e8afd994cca949ebd9ecf950d996c10217546401b1fd16ead5ca
 ```
 
 للتحقق على **Windows PowerShell**، افتح PowerShell داخل مجلد التحميل ونفّذ:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\Raf_Setup_0.5.0.exe
+certutil -hashfile Raf_Portable_0.5.0.zip SHA256
 ```
-
-أو للحصول على القيمة فقط دون باقي التفاصيل:
-
-```powershell
-(Get-FileHash -Algorithm SHA256 .\Raf_Setup_0.5.0.exe).Hash
-```
-
-إذا كان اسم الملف مختلفًا، استبدل `Raf_Setup_0.5.0.exe` باسم الملف الموجود لديك.
-
-> ملاحظة: تُحسب قيمة SHA256 من ملف التثبيت النهائي بعد بنائه. انسخ ناتج الأمر أعلاه وضعه في الخانة المخصصة له.
 
 ---
 
