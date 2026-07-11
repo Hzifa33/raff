@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('raff', {
   setReferenceNumber: (id, ref) => ipcRenderer.invoke('lib:setRef', id, ref),
   getStats: () => ipcRenderer.invoke('lib:stats'),
   getMeta: () => ipcRenderer.invoke('lib:meta'),
+  getSettings: () => ipcRenderer.invoke('lib:getSettings'),
+  updateSettings: (patch) => ipcRenderer.invoke('lib:updateSettings', patch),
 
   exportJson: () => ipcRenderer.invoke('lib:exportJson'),
   exportCsv: () => ipcRenderer.invoke('lib:exportCsv'),

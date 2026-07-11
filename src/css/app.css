@@ -1644,6 +1644,146 @@ kbd {
   .field.span-3 { grid-column: span 4; }
 }
 
+/* ---- Institution branding & label settings ---- */
+.panel-brand .field { margin-bottom: 10px; }
+.logo-row { display: flex; gap: 10px; align-items: center; }
+.logo-preview {
+  width: 60px; height: 60px; flex-shrink: 0;
+  border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+  background: #fff; display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.logo-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.logo-empty { font-size: 9.5px; color: var(--ink-300); display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.logo-empty .rf-icon { color: var(--parchment-300); }
+.logo-actions { display: flex; flex-direction: column; gap: 5px; }
+
+.label-opts { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; padding: 10px; background: var(--parchment-100); border-radius: var(--radius-sm); }
+.label-opt-cols { display: flex; align-items: center; justify-content: space-between; }
+.label-opt-cols label { font-size: 12px; font-weight: 700; color: var(--ink-700); }
+.toggle-row { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-700); cursor: pointer; }
+.toggle-row input { width: 14px; height: 14px; accent-color: var(--brass-600); }
+
+/* ---- Label range in the print modal ---- */
+.label-range-box { background: var(--parchment-100); border: 1px solid var(--brass-300); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 12px; }
+.label-range-title { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--brass-700); margin-bottom: 10px; }
+.label-range-row { display: flex; gap: 8px; align-items: flex-end; }
+.label-range-field { display: flex; flex-direction: column; gap: 3px; flex: 1 1 0; }
+.label-range-field span { font-size: 10.5px; font-weight: 700; color: var(--ink-300); }
+.label-range-field input {
+  border: 1px solid var(--border-soft); background: var(--white);
+  border-radius: var(--radius-sm); padding: 7px 10px; font-size: 13px;
+  font-family: monospace; outline: none; width: 100%;
+}
+.label-range-field input:focus { border-color: var(--accent); }
+.label-range-hint { display: block; font-size: 10.5px; color: var(--ink-300); margin-top: 8px; }
+.label-or { text-align: center; font-size: 11px; color: var(--ink-300); font-weight: 700; margin: 6px 0 12px; position: relative; }
+
+/* =========================================================
+   Barcode scan view + book data sheet
+   ========================================================= */
+.scan-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.scan-input-panel { position: sticky; top: 0; }
+.scan-hero { text-align: center; padding: 8px 0 16px; }
+.scan-hero-icon {
+  width: 64px; height: 64px; margin: 0 auto 12px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--brass-400), var(--brass-600));
+  color: var(--walnut-950);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(193,154,46,0.3);
+}
+.scan-hero-title { font-family: var(--font-display); font-size: 20px; color: var(--ink-900); margin: 0 0 6px; }
+.scan-hero-desc { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+
+.scan-box {
+  display: flex; align-items: center; gap: 8px;
+  border: 2px solid var(--brass-400);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  background: var(--parchment-050);
+  margin-bottom: 12px;
+}
+.scan-box .rf-icon { color: var(--brass-600); flex-shrink: 0; }
+.scan-box input {
+  flex: 1 1 auto; min-width: 0;
+  border: none; background: transparent; outline: none;
+  font-size: 16px; font-family: monospace; letter-spacing: 1px;
+  color: var(--ink-900); direction: ltr; text-align: left;
+}
+.scan-box input::placeholder { color: var(--ink-300); letter-spacing: normal; }
+
+.scan-hints { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.scan-hint { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-secondary); }
+.scan-hint .rf-icon { color: var(--brass-600); flex-shrink: 0; }
+
+.scan-print-row { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid var(--parchment-200); }
+.scan-print-row .btn { justify-content: center; }
+
+.scan-result-panel { min-height: 400px; }
+.scan-empty {
+  text-align: center; padding: 60px 20px; color: var(--ink-300);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.scan-empty .rf-icon { color: var(--parchment-300); margin-bottom: 8px; }
+.scan-empty h3 { font-size: 16px; color: var(--ink-500); margin: 0; }
+.scan-empty p { font-size: 12.5px; max-width: 300px; line-height: 1.6; margin: 4px 0 0; }
+
+/* ---- Book data sheet ---- */
+.sheet { border-top: 4px solid var(--spine); border-radius: var(--radius-sm); }
+.sheet-head { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--parchment-200); }
+.sheet-title-wrap { min-width: 0; flex: 1 1 auto; }
+.sheet-badge { margin-bottom: 8px; }
+.sheet-title { font-family: var(--font-display); font-size: 24px; color: var(--ink-900); margin: 0 0 4px; line-height: 1.3; }
+.sheet-author { font-size: 14px; color: var(--text-secondary); margin: 0; }
+.sheet-barcode {
+  flex-shrink: 0; background: #fff; border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm); padding: 8px 10px; text-align: center;
+}
+.sheet-barcode svg { display: block; max-width: 240px; height: auto; }
+.sheet-nobarcode { font-size: 11px; color: var(--maroon-600); }
+
+.sheet-availability {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 16px;
+}
+.sheet-availability.is-full { background: rgba(75,99,80,0.1); }
+.sheet-availability.is-partial { background: rgba(193,154,46,0.12); }
+.sheet-availability.is-none { background: rgba(115,46,46,0.09); }
+.sheet-avail-num { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--ink-900); }
+.sheet-avail-of { font-size: 13px; color: var(--text-secondary); margin-inline-start: 8px; }
+.sheet-loans-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--brass-700); background: rgba(193,154,46,0.14); border-radius: var(--radius-pill); padding: 5px 12px; }
+
+.sheet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.sheet-field { background: var(--parchment-100); border-radius: var(--radius-sm); padding: 8px 12px; min-width: 0; }
+.sheet-label { display: block; font-size: 10.5px; font-weight: 700; color: var(--ink-300); margin-bottom: 3px; }
+.sheet-value { font-size: 13.5px; color: var(--ink-900); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+
+.sheet-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.sheet-kw { font-size: 11px; font-weight: 700; color: var(--brass-700); background: rgba(193,154,46,0.12); border-radius: var(--radius-pill); padding: 4px 11px; }
+.sheet-notes { background: var(--parchment-100); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px; }
+.sheet-notes p { margin: 4px 0 0; font-size: 13px; line-height: 1.6; color: var(--ink-700); }
+
+.sheet-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 14px; border-top: 1px solid var(--parchment-200); }
+
+.ref-barcode-preview { display: flex; justify-content: center; margin: 14px 0 4px; }
+.ref-barcode-preview svg { max-width: 260px; height: auto; }
+
+@media (max-width: 1180px) {
+  .scan-layout { grid-template-columns: 1fr; }
+  .scan-input-panel { position: static; }
+  .sheet-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 760px) {
+  .sheet-head { flex-direction: column; }
+  .sheet-barcode { align-self: stretch; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }

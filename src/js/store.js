@@ -78,6 +78,19 @@ function emptyDb() {
     createdAt: nowIso(),
     nextRefSeq: 1,
     books: [],
+    settings: defaultSettings(),
+  };
+}
+
+/** Institution branding and label-printing preferences. */
+function defaultSettings() {
+  return {
+    institutionName: '',   // اسم المكتبة/المؤسسة على الملصقات
+    logo: '',              // شعار كـ data URL (base64) — يبقى محلياً
+    labelColumns: 3,       // عدد الأعمدة في ورقة الملصقات
+    labelShowPrice: true,
+    labelShowShelf: true,
+    labelShowMicrotext: true, // معلومات دقيقة شبه خفية
   };
 }
 
@@ -210,9 +223,58 @@ class Store {
       }
       if (!Array.isArray(book.keywords)) { book.keywords = sanitizeKeywords(book.keywords); changed = true; }
     }
+    // Ensure the settings object exists and has every key (older DBs lack it).
+    if (!this.db.settings || typeof this.db.settings !== 'object') this.db.settings = defaultSettings();
+    else {
+      const defs = defaultSettings();
+      for (const k of Object.keys(defs)) {
+        if (this.db.settings[k] === undefined) this.db.settings[k] = defs[k];
+      }
+    }
     this.db.schemaVersion = SCHEMA_VERSION;
     this._save();
     void changed;
+  }
+
+  getSettings() {
+    if (!this.db.settings) this.db.settings = defaultSettings();
+    return { ...this.db.settings };
+  }
+
+  /** Updates institution/label settings. Logo is validated to be a data URL. */
+  updateSettings(patch) {
+    const cur = this.getSettings();
+    const next = { ...cur };
+    if (patch.institutionName !== undefined) next.institutionName = (patch.institutionName || '').toString().slice(0, 120).trim();
+    if (patch.logo !== undefined) {
+      const logo = (patch.logo || '').toString();
+      // Only accept an image data URL, or empty to clear it.
+      next.logo = (logo === '' || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/.test(logo)) ? logo : cur.logo;
+    }
+    if (patch.labelColumns !== undefined) {
+      const n = Math.floor(Number(patch.labelColumns));
+      next.labelColumns = (n >= 1 && n <= 5) ? n : cur.labelColumns;
+    }
+    for (const k of ['labelShowPrice', 'labelShowShelf', 'labelShowMicrotext']) {
+      if (patch[k] !== undefined) next[k] = !!patch[k];
+    }
+    this.db.settings = next;
+    this._save();
+    return { ...next };
+  }
+
+  /** Resolves a reference-number range (e.g. raf-0001..raf-0100) to books. */
+  booksInReferenceRange(fromRef, toRef) {
+    const num = (r) => {
+      const m = /(\d+)\s*$/.exec((r || '').trim());
+      return m ? parseInt(m[1], 10) : null;
+    };
+    const a = num(fromRef), b = num(toRef);
+    if (a === null || b === null) return [];
+    const lo = Math.min(a, b), hi = Math.max(a, b);
+    return this.db.books
+      .filter((bk) => { const n = num(bk.referenceNumber); return n !== null && n >= lo && n <= hi; })
+      .sort((x, y) => num(x.referenceNumber) - num(y.referenceNumber));
   }
 
   getAll() {

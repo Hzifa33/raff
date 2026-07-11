@@ -11,6 +11,7 @@ const ROUTES = {
   } },
   stats: { title: 'الإحصائيات', subtitle: 'أرقام وتحليلات حول مكتبتك', render: (root) => renderStats(root) },
   reports: { title: 'الاستدعاء', subtitle: 'استدعِ مستعيراً أو دار نشر أو مؤلفاً واحصل على تحليل كامل بالأرقام', render: (root) => renderReports(root) },
+  scan: { title: 'المسح الضوئي والباركود', subtitle: 'امسح باركود كتاب لعرض بياناته فوراً، أو اطبع ملصقات الباركود', render: (root) => renderScanView(root) },
   settings: { title: 'النسخ الاحتياطي والإعدادات', subtitle: 'إدارة بيانات المكتبة وإعدادات النظام', render: (root) => renderSettings(root) },
   edit: { title: 'تعديل بيانات الكتاب', subtitle: '', render: (root, ctx) => renderAddForm(root, ctx.book) },
 };
@@ -210,8 +211,46 @@ document.addEventListener('keydown', (e) => {
 })();
 
 /* ---- Init ---- */
+/**
+ * Finds a book by exact reference number (case-insensitive, trimmed). Returns
+ * the book or null. Used by the barcode scanner and manual lookup.
+ */
+function findBookByReference(ref) {
+  if (!ref) return null;
+  const needle = ref.trim().toLowerCase();
+  return RAFF_STATE.books.find((b) => (b.referenceNumber || '').trim().toLowerCase() === needle) || null;
+}
+
+/**
+ * Handles a scanned or typed code from anywhere in the app. If it matches a
+ * book, we jump to the scan view and show its data sheet; otherwise we report
+ * that nothing matched so mislabelled books are caught immediately.
+ */
+function handleScannedCode(code) {
+  const book = findBookByReference(code);
+  if (book) {
+    _lastScannedId = book.id;
+    if (currentRoute !== 'scan') navigateTo('scan');
+    else renderRoute();
+    // Let the view render, then show the sheet.
+    setTimeout(() => { if (typeof showScannedBook === 'function') showScannedBook(book.id); }, 30);
+    toast(`تم العثور على: ${book.title || 'كتاب'}`, 'success', 1800);
+  } else {
+    toast(`لا يوجد كتاب بالرقم المرجعي: ${code}`, 'error', 3000);
+  }
+}
+
+let _lastScannedId = null;
+
 (async function init() {
   await refreshState();
   renderNavCounts();
   renderRoute();
+
+  // Global barcode-scanner listener: works no matter which view is open.
+  if (typeof RaffScanner !== 'undefined') {
+    RaffScanner.createScanner({
+      onScan: (code) => handleScannedCode(code),
+    });
+  }
 })();

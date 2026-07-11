@@ -68,6 +68,8 @@ app.whenReady().then(() => {
   ipcMain.handle('lib:setRef', (_e, id, ref) => store.setReferenceNumber(id, ref));
   ipcMain.handle('lib:stats', () => store.getStats());
   ipcMain.handle('lib:meta', () => store.getMeta());
+  ipcMain.handle('lib:getSettings', () => store.getSettings());
+  ipcMain.handle('lib:updateSettings', (_e, patch) => store.updateSettings(patch));
 
   // ---- IPC: Backup / restore ----
   ipcMain.handle('lib:exportJson', async () => {

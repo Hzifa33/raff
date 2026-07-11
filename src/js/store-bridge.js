@@ -7,6 +7,7 @@ const RAFF_STATE = {
   reportIndex: null,
   meta: { authors: [], publishers: [], categories: [], borrowers: [], years: [], series: [], shelves: [], keywords: [] },
   stats: {},
+  settings: {},
 };
 
 const _subscribers = [];
@@ -16,10 +17,11 @@ function onStateChange(fn) {
 }
 
 async function refreshState() {
-  const [books, meta, stats] = await Promise.all([
+  const [books, meta, stats, settings] = await Promise.all([
     window.raff.getAll(),
     window.raff.getMeta(),
     window.raff.getStats(),
+    window.raff.getSettings(),
   ]);
   RAFF_STATE.books = books;
   // All three indexes are derived views of the same data, rebuilt together so
@@ -29,6 +31,7 @@ async function refreshState() {
   RAFF_STATE.reportIndex = buildReportIndex(books);
   RAFF_STATE.meta = meta;
   RAFF_STATE.stats = stats;
+  RAFF_STATE.settings = settings || {};
   _subscribers.forEach((fn) => fn(RAFF_STATE));
   return RAFF_STATE;
 }

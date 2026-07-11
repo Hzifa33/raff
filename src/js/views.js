@@ -741,11 +741,24 @@ function showSavedBookModal(record, { andNew = false } = {}) {
       </div>
       <p class="ref-hint">دوّن هذا الرقم على الكتاب لتحديد موقعه على الرف لاحقاً</p>
 
+      <div class="ref-barcode-preview" id="refBarcodePreview"></div>
+
       <div class="form-actions" style="justify-content:center;">
+        <button class="btn btn-outline" id="printLabelBtn">${icon('printer')} طباعة الملصق</button>
         <button class="btn btn-outline" id="copyRefBtn">${icon('hash')} نسخ الرقم</button>
         <button class="btn btn-primary" id="closeRefModal">${icon('check')} تم</button>
       </div>
     </div>`;
+
+  const renderBarcodePreview = () => {
+    const el = document.getElementById('refBarcodePreview');
+    if (!el) return;
+    if (typeof RaffBarcode !== 'undefined' && RaffBarcode.canEncode(currentRef)) {
+      el.innerHTML = RaffBarcode.toSVG(currentRef, { moduleWidth: 2, height: 50, textSize: 13, color: '#1a1a1a', background: '#ffffff' });
+    } else {
+      el.innerHTML = '';
+    }
+  };
 
   openModal(html, {
     onMount: (overlay) => {
@@ -775,6 +788,7 @@ function showSavedBookModal(record, { andNew = false } = {}) {
         currentRef = next;
         valueEl.textContent = next;
         closeEdit();
+        renderBarcodePreview();
         await refreshState();
         refreshCurrentView();
         toast('تم تحديث الرقم المرجعي', 'success', 1800);
@@ -788,6 +802,11 @@ function showSavedBookModal(record, { andNew = false } = {}) {
         if (e.key === 'Escape') { e.preventDefault(); closeEdit(); }
       });
 
+      overlay.querySelector('#printLabelBtn').addEventListener('click', () => {
+        const fresh = RAFF_STATE.books.find((b) => b.id === record.id) || record;
+        printBarcodeLabels([fresh], fresh.title);
+      });
+
       overlay.querySelector('#copyRefBtn').addEventListener('click', async () => {
         try {
           await navigator.clipboard.writeText(currentRef);
@@ -797,6 +816,7 @@ function showSavedBookModal(record, { andNew = false } = {}) {
         }
       });
       overlay.querySelector('#closeRefModal').addEventListener('click', closeModal);
+      renderBarcodePreview();
     },
   });
 }
@@ -1232,6 +1252,381 @@ function renderLibraryRow(book) {
 let _reportState = { dim: 'borrower', value: '', sortKey: null, sortDir: 'desc' };
 let _reportAc = null;
 
+/* =========================================================
+   Barcode scan + label printing
+   ========================================================= */
+function renderScanView(root) {
+  const book = _lastScannedId ? RAFF_STATE.books.find((b) => b.id === _lastScannedId) : null;
+
+  root.innerHTML = `
+    <div class="scan-layout">
+      <div class="panel scan-input-panel">
+        <div class="scan-hero">
+          <div class="scan-hero-icon">${icon('scan', 34)}</div>
+          <h2 class="scan-hero-title">امسح باركود الكتاب</h2>
+          <p class="scan-hero-desc">وجّه قارئ الباركود نحو ملصق الكتاب، أو اكتب الرقم المرجعي يدوياً واضغط Enter.</p>
+        </div>
+        <div class="scan-box ac-anchor">
+          ${icon('barcode', 18)}
+          <input type="text" id="scanInput" placeholder="raf-0001" autocomplete="off" data-scan-target spellcheck="false" />
+          <button class="btn btn-primary btn-sm" id="scanGoBtn">${icon('search', 15)} عرض</button>
+        </div>
+        <div class="scan-hints">
+          <div class="scan-hint">${icon('info', 13)} قارئ الباركود يعمل تلقائياً من أي شاشة في البرنامج.</div>
+          <div class="scan-hint">${icon('printer', 13)} يمكنك طباعة ملصقات الباركود من الأسفل.</div>
+        </div>
+        <div class="scan-print-row">
+          <button class="btn btn-outline btn-sm" id="printAllLabelsBtn">${icon('printer', 15)} طباعة ملصقات كل الكتب</button>
+          <button class="btn btn-outline btn-sm" id="printFilteredBtn">${icon('printer', 15)} طباعة حسب رف/مجال…</button>
+        </div>
+      </div>
+
+      <div class="panel scan-result-panel" id="scanResult">
+        ${book ? scannedBookSheetHtml(book) : scanEmptyHtml()}
+      </div>
+    </div>`;
+
+  const input = root.querySelector('#scanInput');
+  input.focus();
+
+  const submit = () => {
+    const val = input.value.trim();
+    if (!val) return;
+    handleScannedCode(val);
+    input.value = '';
+    input.focus();
+  };
+  root.querySelector('#scanGoBtn').addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+  });
+
+  root.querySelector('#printAllLabelsBtn').addEventListener('click', () => {
+    printBarcodeLabels(RAFF_STATE.books, 'كل الكتب');
+  });
+  root.querySelector('#printFilteredBtn').addEventListener('click', showLabelFilterModal);
+
+  if (book) wireScannedBookSheet(root, book);
+}
+
+function scanEmptyHtml() {
+  return `
+    <div class="scan-empty">
+      ${icon('barcode', 48)}
+      <h3>بانتظار المسح</h3>
+      <p>ستظهر هنا صفحة بيانات الكتاب كاملة بمجرد مسح الباركود أو إدخال الرقم المرجعي.</p>
+    </div>`;
+}
+
+/** The full data sheet shown after a successful scan. */
+function scannedBookSheetHtml(book) {
+  const spine = spineColorFor(book.category || book.author);
+  const total = RaffBook.totalCopies(book);
+  const availFull = RaffBook.availableFullCopies(book);
+  const multi = RaffBook.isMultiVolume(book);
+  const priceStr = typeof book.price === 'number' ? formatPrice(book.price) : null;
+  const openLoans = (book.loans || []).filter((l) => !l.returnedAt);
+  const canEncode = typeof RaffBarcode !== 'undefined' && RaffBarcode.canEncode(book.referenceNumber);
+  const barcodeSvg = canEncode
+    ? RaffBarcode.toSVG(book.referenceNumber, { moduleWidth: 2, height: 60, textSize: 14, color: '#1a1a1a', background: '#ffffff' })
+    : '';
+
+  const field = (label, value) => value
+    ? `<div class="sheet-field"><span class="sheet-label">${label}</span><span class="sheet-value">${escapeHtml(value)}</span></div>`
+    : '';
+
+  return `
+    <div class="sheet" style="--spine:${spine};">
+      <div class="sheet-head">
+        <div class="sheet-title-wrap">
+          <div class="sheet-badge">${statusBadgeHtml(book)}</div>
+          <h2 class="sheet-title">${escapeHtml(book.title) || 'بدون عنوان'}</h2>
+          <p class="sheet-author">${escapeHtml(book.author) || 'مؤلف غير محدد'}</p>
+        </div>
+        <div class="sheet-barcode" id="sheetBarcode">${barcodeSvg || '<span class="sheet-nobarcode">تعذّر توليد الباركود لهذا الرقم</span>'}</div>
+      </div>
+
+      <div class="sheet-availability ${availFull === 0 ? 'is-none' : availFull < total ? 'is-partial' : 'is-full'}">
+        <div>
+          <span class="sheet-avail-num">${availFull}</span>
+          <span class="sheet-avail-of">من ${total} ${multi ? 'مجموعة' : 'نسخة'} متاحة</span>
+        </div>
+        ${openLoans.length ? `<div class="sheet-loans-badge">${icon('user', 13)} ${openLoans.length} إعارة مفتوحة</div>` : ''}
+      </div>
+
+      <div class="sheet-grid">
+        ${field('الرقم المرجعي', book.referenceNumber)}
+        ${field('دار النشر', book.publisher)}
+        ${field('المجال', book.category)}
+        ${field('الطبعة', book.edition)}
+        ${field('سنة النشر', book.publishYear)}
+        ${multi ? field('عدد الأجزاء', String(RaffBook.totalVolumes(book))) : ''}
+        ${priceStr ? field('السعر', priceStr) : ''}
+        ${book.series ? field('السلسلة', book.series + (book.seriesOrder ? ` (${book.seriesOrder})` : '')) : ''}
+        ${book.shelf ? field('الرف', book.shelf) : ''}
+        ${book.condition ? field('حالة النسخة', book.condition) : ''}
+        ${book.acquisition ? field('جهة الاقتناء', book.acquisition) : ''}
+      </div>
+
+      ${(book.keywords && book.keywords.length)
+        ? `<div class="sheet-keywords">${book.keywords.map((k) => `<span class="sheet-kw">${escapeHtml(k)}</span>`).join('')}</div>`
+        : ''}
+
+      ${book.notes ? `<div class="sheet-notes"><span class="sheet-label">ملاحظات</span><p>${escapeHtml(book.notes)}</p></div>` : ''}
+
+      <div class="sheet-actions">
+        <button class="btn btn-primary btn-sm" id="sheetDetailsBtn">${icon('book', 15)} فتح التفاصيل والإعارة</button>
+        <button class="btn btn-outline btn-sm" id="sheetPrintLabelBtn">${icon('printer', 15)} طباعة ملصق الباركود</button>
+        <button class="btn btn-outline btn-sm" id="sheetCopyRefBtn">${icon('hash', 15)} نسخ الرقم</button>
+      </div>
+    </div>`;
+}
+
+function wireScannedBookSheet(root, book) {
+  root.querySelector('#sheetDetailsBtn')?.addEventListener('click', () => showBookDetails(book.id));
+  root.querySelector('#sheetPrintLabelBtn')?.addEventListener('click', () => printBarcodeLabels([book], book.title));
+  root.querySelector('#sheetCopyRefBtn')?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(book.referenceNumber);
+      toast('تم نسخ الرقم المرجعي', 'success', 1600);
+    } catch (_) { toast('تعذّر النسخ', 'error'); }
+  });
+}
+
+/** Called by app.js after a scan resolves to a book. */
+function showScannedBook(bookId) {
+  _lastScannedId = bookId;
+  const panel = document.getElementById('scanResult');
+  const book = RAFF_STATE.books.find((b) => b.id === bookId);
+  if (!panel || !book) return;
+  panel.innerHTML = scannedBookSheetHtml(book);
+  wireScannedBookSheet(panel, book);
+  const input = document.getElementById('scanInput');
+  if (input) { input.value = ''; input.focus(); }
+}
+
+/**
+ * Opens the OS print dialog with a clean sheet of barcode labels. We render an
+ * isolated HTML document (no app chrome) so what prints is exactly the labels,
+ * sized for standard adhesive label sheets.
+ */
+function printBarcodeLabels(books, titleLabel) {
+  const printable = books.filter((b) => typeof RaffBarcode !== 'undefined' && RaffBarcode.canEncode(b.referenceNumber));
+  if (!printable.length) {
+    toast('لا توجد أرقام مرجعية صالحة للطباعة', 'error');
+    return;
+  }
+
+  const s = RAFF_STATE.settings || {};
+  const columns = (s.labelColumns >= 1 && s.labelColumns <= 5) ? s.labelColumns : 3;
+  const showPrice = s.labelShowPrice !== false;
+  const showShelf = s.labelShowShelf !== false;
+  const showMicro = s.labelShowMicrotext !== false;
+  const institution = (s.institutionName || '').trim();
+  const logo = s.logo || '';
+
+  // Barcode density scales gently with column count so labels stay scannable.
+  const moduleWidth = columns >= 4 ? 1.3 : columns === 3 ? 1.6 : 2;
+  const barHeight = columns >= 4 ? 34 : 40;
+
+  const labels = printable.map((b) => {
+    const svg = RaffBarcode.toSVG(b.referenceNumber, {
+      moduleWidth: moduleWidth, height: barHeight, textSize: 10, margin: 4,
+      color: '#111111', background: '#ffffff',
+    });
+    const title = escapeHtml((b.title || 'بدون عنوان').slice(0, 48));
+    const priceStr = (showPrice && typeof b.price === 'number') ? formatPrice(b.price) : '';
+
+    // Microtext: a faint, very small line carrying quick book facts. It is
+    // deliberately low-contrast — legible up close, unobtrusive from afar.
+    const micro = showMicro ? [
+      b.author, b.publisher, b.publishYear,
+      b.category, (b.volumes > 1 ? `${b.volumes} أجزاء` : ''), b.condition,
+    ].filter(Boolean).map(escapeHtml).join(' • ') : '';
+
+    return `
+      <div class="label">
+        ${institution || logo ? `<div class="label-brand">
+          ${logo ? `<img src="${logo}" class="label-logo" alt="">` : ''}
+          ${institution ? `<span class="label-inst">${escapeHtml(institution)}</span>` : ''}
+        </div>` : ''}
+        <div class="label-title">${title}</div>
+        <div class="label-barcode">${svg}</div>
+        <div class="label-meta">
+          <span class="label-ref">${escapeHtml(b.referenceNumber)}</span>
+          ${showShelf && b.shelf ? `<span class="label-shelf">رف ${escapeHtml(b.shelf)}</span>` : ''}
+          ${priceStr ? `<span class="label-price">${priceStr}</span>` : ''}
+        </div>
+        ${micro ? `<div class="label-micro">${micro}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  const headBrand = logo
+    ? `<img src="${logo}" class="head-logo" alt="">`
+    : '';
+
+  const doc = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8">
+    <title>ملصقات الباركود — ${escapeHtml(titleLabel || '')}</title>
+    <style>
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { margin: 0; font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; padding: 10mm; color: #1a1a1a; }
+      .sheet-head {
+        display: flex; align-items: center; justify-content: center; gap: 4mm;
+        text-align: center; margin-bottom: 6mm; padding-bottom: 4mm;
+        border-bottom: 2px solid #b0894b;
+      }
+      .head-logo { max-height: 14mm; max-width: 30mm; object-fit: contain; }
+      .head-text h1 { font-size: 15pt; margin: 0 0 1mm; color: #3e2c1c; }
+      .head-text p { font-size: 8.5pt; color: #777; margin: 0; }
+      .labels { display: grid; grid-template-columns: repeat(${columns}, 1fr); gap: 4mm; }
+      .label {
+        border: 1.2pt solid #b0894b; border-radius: 2.5mm; padding: 2.5mm 2mm 2mm;
+        text-align: center; page-break-inside: avoid; break-inside: avoid;
+        display: flex; flex-direction: column; align-items: center; gap: 1mm;
+        background: #fff; position: relative; overflow: hidden;
+      }
+      .label::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1.5mm;
+        background: #b0894b;
+      }
+      .label-brand { display: flex; align-items: center; gap: 1.5mm; margin-top: 1mm; }
+      .label-logo { max-height: 5mm; max-width: 12mm; object-fit: contain; }
+      .label-inst { font-size: 6.5pt; font-weight: 700; color: #8b6f3a; letter-spacing: 0.2pt; }
+      .label-title { font-size: 8.5pt; font-weight: 700; line-height: 1.25; min-height: 20px;
+        display: flex; align-items: center; }
+      .label-barcode { width: 100%; }
+      .label-barcode svg { max-width: 100%; height: auto; }
+      .label-meta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+        gap: 1.5mm; margin-top: 0.5mm; }
+      .label-ref { font-size: 8pt; font-weight: 700; direction: ltr; font-family: monospace; }
+      .label-shelf, .label-price {
+        font-size: 6.5pt; font-weight: 700; padding: 0.3mm 1.5mm; border-radius: 1mm;
+        background: #f3ead5; color: #6b5518;
+      }
+      .label-price { direction: ltr; }
+      /* Microtext: intentionally faint and tiny. */
+      .label-micro {
+        font-size: 4.6pt; line-height: 1.3; color: #c9c1ad; margin-top: 0.8mm;
+        max-width: 100%; overflow: hidden; letter-spacing: 0.1pt;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      }
+      @media print { @page { margin: 8mm; } }
+    </style></head><body>
+    <div class="sheet-head">
+      ${headBrand}
+      <div class="head-text">
+        <h1>${institution ? escapeHtml(institution) : 'مكتبة رَفّ'}</h1>
+        <p>ملصقات الباركود · ${escapeHtml(titleLabel || '')} · ${printable.length} كتاب</p>
+      </div>
+    </div>
+    <div class="labels">${labels}</div>
+    </body></html>`;
+
+  // Render in a hidden iframe so the OS print dialog shows only the labels.
+  // Printing is triggered from here (the parent), not an inline script, so it
+  // works under the app's strict Content-Security-Policy.
+  const frame = document.createElement('iframe');
+  frame.style.position = 'fixed';
+  frame.style.right = '-10000px';
+  frame.style.width = '800px';
+  frame.style.height = '600px';
+  document.body.appendChild(frame);
+  const fdoc = frame.contentWindow.document;
+  fdoc.open();
+  fdoc.write(doc);
+  fdoc.close();
+  // Wait for the barcodes (inline SVG) and logo to lay out, then print.
+  setTimeout(() => {
+    try {
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+    } catch (_) { /* ignore */ }
+  }, 400);
+  // Clean up after printing.
+  setTimeout(() => { try { document.body.removeChild(frame); } catch (_) {} }, 60000);
+  toast(`جارٍ تجهيز ${printable.length} ملصقاً للطباعة…`, 'success', 2000);
+}
+
+/** Lets the user print labels for a subset (by shelf, category, or series). */
+function showLabelFilterModal() {
+  const meta = RAFF_STATE.meta;
+  const opt = (arr) => arr.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  const html = `
+    <div class="modal-header">
+      <h3 class="modal-title">${icon('printer')} طباعة ملصقات محددة</h3>
+      <button class="btn btn-ghost btn-icon" id="lblClose" aria-label="إغلاق">${icon('x')}</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-note" style="display:flex;">${icon('info', 13)} اختر معياراً واحداً لطباعة ملصقات مجموعة من الكتب.</p>
+
+      <div class="label-range-box">
+        <div class="label-range-title">${icon('hash', 14)} حسب نطاق الرقم المرجعي</div>
+        <div class="label-range-row">
+          <label class="label-range-field"><span>من</span><input type="text" id="lblFrom" placeholder="raf-0001" dir="ltr"></label>
+          <label class="label-range-field"><span>إلى</span><input type="text" id="lblTo" placeholder="raf-0100" dir="ltr"></label>
+          <button class="btn btn-primary btn-sm" id="lblPrintRange">${icon('printer', 15)} طباعة النطاق</button>
+        </div>
+        <span class="label-range-hint">مثال: من <b>raf-0001</b> إلى <b>raf-0100</b> يطبع أول مئة كتاب.</span>
+      </div>
+
+      <div class="label-or">أو حسب تصنيف</div>
+
+      <div class="field">
+        <label>${icon('book', 14)} حسب الرف</label>
+        <select id="lblShelf"><option value="">— اختر رفاً —</option>${opt(meta.shelves || [])}</select>
+      </div>
+      <div class="field">
+        <label>${icon('tag', 14)} حسب المجال</label>
+        <select id="lblCategory"><option value="">— اختر مجالاً —</option>${opt(meta.categories || [])}</select>
+      </div>
+      <div class="field">
+        <label>${icon('layers', 14)} حسب السلسلة</label>
+        <select id="lblSeries"><option value="">— اختر سلسلة —</option>${opt(meta.series || [])}</select>
+      </div>
+      <div class="form-actions" style="position:static;margin:14px 0 0;padding:14px 0 0;border-top:1px solid var(--parchment-200);border-radius:0;">
+        <button class="btn btn-primary btn-sm" id="lblPrint">${icon('printer', 15)} طباعة حسب التصنيف</button>
+      </div>
+    </div>`;
+
+  openModal(html, {
+    onMount: (overlay) => {
+      overlay.querySelector('#lblClose').addEventListener('click', closeModal);
+
+      // Print by reference-number range.
+      overlay.querySelector('#lblPrintRange').addEventListener('click', () => {
+        const from = overlay.querySelector('#lblFrom').value.trim();
+        const to = overlay.querySelector('#lblTo').value.trim();
+        if (!from || !to) { toast('أدخل بداية ونهاية النطاق', 'error'); return; }
+        const num = (r) => { const m = /(\d+)\s*$/.exec(r); return m ? parseInt(m[1], 10) : null; };
+        const a = num(from), b = num(to);
+        if (a === null || b === null) { toast('صيغة الرقم غير صحيحة', 'error'); return; }
+        const lo = Math.min(a, b), hi = Math.max(a, b);
+        const books = RAFF_STATE.books
+          .filter((bk) => { const n = num(bk.referenceNumber); return n !== null && n >= lo && n <= hi; })
+          .sort((x, y) => num(x.referenceNumber) - num(y.referenceNumber));
+        if (!books.length) { toast('لا توجد كتب في هذا النطاق', 'error'); return; }
+        closeModal();
+        printBarcodeLabels(books, `النطاق ${lo}–${hi}`);
+      });
+
+      overlay.querySelector('#lblPrint').addEventListener('click', () => {
+        const shelf = overlay.querySelector('#lblShelf').value;
+        const cat = overlay.querySelector('#lblCategory').value;
+        const series = overlay.querySelector('#lblSeries').value;
+        let books = RAFF_STATE.books;
+        let label = [];
+        if (shelf) { books = books.filter((b) => b.shelf === shelf); label.push('الرف: ' + shelf); }
+        if (cat) { books = books.filter((b) => b.category === cat); label.push('المجال: ' + cat); }
+        if (series) { books = books.filter((b) => b.series === series); label.push('السلسلة: ' + series); }
+        if (!label.length) { toast('اختر معياراً واحداً على الأقل', 'error'); return; }
+        if (!books.length) { toast('لا توجد كتب مطابقة', 'error'); return; }
+        closeModal();
+        printBarcodeLabels(books, label.join(' · '));
+      });
+    },
+  });
+}
+
 function renderReports(root) {
   const { dim, value } = _reportState;
   const dimDef = DIMENSIONS[dim];
@@ -1521,6 +1916,7 @@ function showIntegrityReport(report) {
 
 function renderSettings(root) {
   const meta = RAFF_STATE.meta;
+  const st = RAFF_STATE.settings || {};
   const exportRow = (title, desc, id) => `
     <div class="setting-action">
       <div>
@@ -1530,8 +1926,59 @@ function renderSettings(root) {
       <button class="btn btn-outline btn-sm" id="${id}">${icon('download')} تصدير</button>
     </div>`;
 
+  const cols = (st.labelColumns >= 1 && st.labelColumns <= 5) ? st.labelColumns : 3;
+
   root.innerHTML = `
     <div class="settings-grid">
+      <div class="panel panel-brand">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">${icon('printer', 18)} هوية المؤسسة والملصقات</h2>
+            <p class="panel-desc">تظهر على ملصقات الباركود المطبوعة</p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>اسم المكتبة / المؤسسة</label>
+          <input type="text" id="setInstName" value="${escapeHtml(st.institutionName || '')}" placeholder="مثال: مكتبة المسجد المركزي" maxlength="120" />
+        </div>
+
+        <div class="field">
+          <label>شعار المؤسسة</label>
+          <div class="logo-row">
+            <div class="logo-preview" id="logoPreview">
+              ${st.logo ? `<img src="${st.logo}" alt="الشعار">` : `<span class="logo-empty">${icon('barcode', 22)} لا يوجد شعار</span>`}
+            </div>
+            <div class="logo-actions">
+              <button class="btn btn-outline btn-sm" id="logoPickBtn">${icon('upload', 14)} اختيار صورة</button>
+              <button class="btn btn-ghost btn-sm ${st.logo ? '' : 'hidden'}" id="logoClearBtn">${icon('trash', 14)} إزالة</button>
+              <input type="file" id="logoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none">
+            </div>
+          </div>
+          <span class="hint">PNG أو JPG أو SVG — يُحفظ محلياً داخل المكتبة فقط.</span>
+        </div>
+
+        <div class="label-opts">
+          <div class="label-opt-cols">
+            <label>عدد الأعمدة في الورقة</label>
+            <div class="chip-toggle" id="setCols">
+              ${[2, 3, 4].map((n) => `<button data-cols="${n}" class="${n === cols ? 'active' : ''}">${n}</button>`).join('')}
+            </div>
+          </div>
+          <label class="toggle-row"><input type="checkbox" id="setPrice" ${st.labelShowPrice !== false ? 'checked' : ''}> إظهار السعر على الملصق</label>
+          <label class="toggle-row"><input type="checkbox" id="setShelf" ${st.labelShowShelf !== false ? 'checked' : ''}> إظهار الرف على الملصق</label>
+          <label class="toggle-row"><input type="checkbox" id="setMicro" ${st.labelShowMicrotext !== false ? 'checked' : ''}> معلومات دقيقة خفية (المؤلف والناشر…)</label>
+        </div>
+
+        <div class="setting-action" style="border-top:1px solid var(--parchment-200);margin-top:6px;padding-top:12px;">
+          <div>
+            <div class="setting-action-title">معاينة الطباعة</div>
+            <div class="setting-action-desc">جرّب شكل الملصقات على أول 6 كتب</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="previewLabelsBtn">${icon('printer', 14)} معاينة</button>
+        </div>
+      </div>
+
       <div class="panel">
         <div class="panel-header">
           <div>
@@ -1612,6 +2059,58 @@ function renderSettings(root) {
       </div>
     </div>
   `;
+
+  // ---- Institution branding & label settings ----
+  const saveSetting = async (patch) => {
+    const updated = await window.raff.updateSettings(patch);
+    RAFF_STATE.settings = updated;
+  };
+
+  const instInput = root.querySelector('#setInstName');
+  let instTimer = null;
+  instInput.addEventListener('input', () => {
+    if (instTimer) clearTimeout(instTimer);
+    instTimer = setTimeout(() => saveSetting({ institutionName: instInput.value }), 400);
+  });
+
+  root.querySelector('#logoPickBtn').addEventListener('click', () => root.querySelector('#logoFile').click());
+  root.querySelector('#logoFile').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) { toast('حجم الشعار كبير (الحد 500 كيلوبايت)', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result;
+      await saveSetting({ logo: dataUrl });
+      const preview = root.querySelector('#logoPreview');
+      preview.innerHTML = `<img src="${dataUrl}" alt="الشعار">`;
+      root.querySelector('#logoClearBtn').classList.remove('hidden');
+      toast('تم حفظ الشعار', 'success', 1600);
+    };
+    reader.readAsDataURL(file);
+  });
+  root.querySelector('#logoClearBtn').addEventListener('click', async () => {
+    await saveSetting({ logo: '' });
+    root.querySelector('#logoPreview').innerHTML = `<span class="logo-empty">${icon('barcode', 22)} لا يوجد شعار</span>`;
+    root.querySelector('#logoClearBtn').classList.add('hidden');
+    toast('تم إزالة الشعار', 'success', 1600);
+  });
+
+  root.querySelector('#setCols').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-cols]');
+    if (!btn) return;
+    root.querySelectorAll('#setCols button').forEach((b) => b.classList.toggle('active', b === btn));
+    saveSetting({ labelColumns: Number(btn.dataset.cols) });
+  });
+  root.querySelector('#setPrice').addEventListener('change', (e) => saveSetting({ labelShowPrice: e.target.checked }));
+  root.querySelector('#setShelf').addEventListener('change', (e) => saveSetting({ labelShowShelf: e.target.checked }));
+  root.querySelector('#setMicro').addEventListener('change', (e) => saveSetting({ labelShowMicrotext: e.target.checked }));
+
+  root.querySelector('#previewLabelsBtn').addEventListener('click', () => {
+    const sample = RAFF_STATE.books.slice(0, 6);
+    if (!sample.length) { toast('لا توجد كتب للمعاينة', 'error'); return; }
+    printBarcodeLabels(sample, 'معاينة');
+  });
 
   root.querySelector('#exportJsonBtn').addEventListener('click', async () => {
     const res = await window.raff.exportJson();
