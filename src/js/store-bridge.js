@@ -5,7 +5,7 @@ const RAFF_STATE = {
   index: [],
   suggestions: [],
   reportIndex: null,
-  meta: { authors: [], publishers: [], categories: [], borrowers: [], years: [] },
+  meta: { authors: [], publishers: [], categories: [], borrowers: [], years: [], series: [], shelves: [], keywords: [] },
   stats: {},
 };
 

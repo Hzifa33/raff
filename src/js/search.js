@@ -35,6 +35,10 @@ function buildSearchIndex(books) {
     const publisher = normalizeArabic(b.publisher);
     const referenceNumber = normalizeArabic(b.referenceNumber);
     const category = normalizeArabic(b.category);
+    const series = normalizeArabic(b.series);
+    const shelf = normalizeArabic(b.shelf);
+    const keywords = normalizeArabic((b.keywords || []).join(' '));
+    const acquisition = normalizeArabic(b.acquisition);
     const borrowers = normalizeArabic((b.loans || []).map((l) => l.borrowerName).join(' '));
     index[i] = {
       book: b,
@@ -43,10 +47,14 @@ function buildSearchIndex(books) {
       publisher,
       referenceNumber,
       category,
+      series,
+      shelf,
+      keywords,
       borrowers,
       // Status is derived, so cache it here rather than recomputing per keystroke.
       status: RaffBook.bookStatus(b),
-      all: title + ' ' + author + ' ' + publisher + ' ' + referenceNumber + ' ' + category + ' ' + borrowers,
+      all: title + ' ' + author + ' ' + publisher + ' ' + referenceNumber + ' ' + category
+        + ' ' + series + ' ' + shelf + ' ' + keywords + ' ' + acquisition + ' ' + borrowers,
       createdAt: Date.parse(b.createdAt) || 0,
     };
   }

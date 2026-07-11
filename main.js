@@ -65,6 +65,7 @@ app.whenReady().then(() => {
   ipcMain.handle('lib:restore', (_e, book) => store.restoreBook(book));
   ipcMain.handle('lib:borrow', (_e, bookId, payload) => store.borrowCopy(bookId, payload));
   ipcMain.handle('lib:return', (_e, bookId, loanId, returnedAt) => store.returnLoan(bookId, loanId, returnedAt));
+  ipcMain.handle('lib:setRef', (_e, id, ref) => store.setReferenceNumber(id, ref));
   ipcMain.handle('lib:stats', () => store.getStats());
   ipcMain.handle('lib:meta', () => store.getMeta());
 
@@ -149,8 +150,45 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('lib:resetAll', () => {
-    store.resetAll();
-    return { ok: true };
+    const result = store.resetAll();
+    return { ok: true, ...result };
+  });
+
+  ipcMain.handle('lib:backup', () => {
+    try {
+      const file = store.createBackup('manual');
+      return { ok: true, filePath: file };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('lib:integrity', () => {
+    try {
+      return { ok: true, report: store.integrityCheck() };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('lib:openDataFolder', async () => {
+    try {
+      await shell.openPath(store.dataDir());
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('lib:exportOverdueCsv', async () => {
+    const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+      title: 'تصدير الإعارات المتأخرة',
+      defaultPath: `raff-overdue-${new Date().toISOString().slice(0, 10)}.csv`,
+      filters: [{ name: 'CSV', extensions: ['csv'] }],
+    });
+    if (canceled || !filePath) return { ok: false };
+    const result = store.exportOverdueCsv(filePath);
+    return { ok: true, filePath, ...result };
   });
 
   ipcMain.handle('app:openExternal', (_e, url) => {

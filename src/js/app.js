@@ -2,12 +2,12 @@
 
 const ROUTES = {
   dashboard: { title: 'لوحة المعلومات', subtitle: 'نظرة عامة على مكتبتك', render: (root) => renderDashboard(root) },
-  search: { title: 'البحث المتقدم', subtitle: 'ابحث حسب العنوان، المؤلف، دار النشر، أو الرقم المرجعي', render: (root, ctx) => renderBookBrowser(root, ctx) },
+  search: { title: 'البحث المتقدم', subtitle: 'بحث استكشافي حي ببطاقات — للعثور السريع على كتاب', render: (root, ctx) => renderBookBrowser(root, ctx) },
   add: { title: 'إضافة كتاب جديد', subtitle: 'سجّل بيانات كتاب جديد في المكتبة', render: (root) => renderAddForm(root, null) },
-  library: { title: 'السجل الكامل', subtitle: 'جميع الكتب المسجلة في المكتبة', render: (root) => {
+  library: { title: 'السجل الكامل', subtitle: 'جدول قابل للفرز بكل أعمدة المكتبة', render: (root) => {
     const quick = document.getElementById('quickSearchInput');
     if (quick) quick.value = '';
-    renderBookBrowser(root, { presetQuery: '' });
+    renderLibraryTable(root);
   } },
   stats: { title: 'الإحصائيات', subtitle: 'أرقام وتحليلات حول مكتبتك', render: (root) => renderStats(root) },
   reports: { title: 'الاستدعاء', subtitle: 'استدعِ مستعيراً أو دار نشر أو مؤلفاً واحصل على تحليل كامل بالأرقام', render: (root) => renderReports(root) },
@@ -75,13 +75,30 @@ document.addEventListener('click', async (e) => {
   const row = e.target.closest('.book-row[data-action="details"]');
   if (row) {
     showBookDetails(row.dataset.id);
+    return;
+  }
+
+  // Library table rows.
+  const libRow = e.target.closest('.lib-row[data-id]');
+  if (libRow) {
+    showBookDetails(libRow.dataset.id);
+    return;
+  }
+
+  // Overdue banner items.
+  const overdueItem = e.target.closest('.overdue-item[data-book]');
+  if (overdueItem) {
+    showBookDetails(overdueItem.dataset.book);
   }
 });
 
 /** Re-renders the current view; browsing views update in place to keep scroll. */
 function refreshCurrentView() {
-  if (currentRoute === 'search' || currentRoute === 'library') {
+  if (currentRoute === 'search') {
     updateBookResults({ resetScroll: false });
+  } else if (currentRoute === 'library') {
+    if (typeof updateLibraryResults === 'function') updateLibraryResults();
+    else renderRoute();
   } else {
     renderRoute();
   }
@@ -90,7 +107,7 @@ function refreshCurrentView() {
 /* ---- Keyboard access for book rows ---- */
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
-  const row = e.target.closest?.('.book-row[data-action="details"]');
+  const row = e.target.closest?.('.book-row[data-action="details"], .lib-row[data-id]');
   if (!row) return;
   e.preventDefault();
   showBookDetails(row.dataset.id);
@@ -103,7 +120,7 @@ document.getElementById('quickSearchInput').addEventListener('input', (e) => {
   const value = e.target.value;
   _browserFilters.query = value;
 
-  if (currentRoute === 'search' || currentRoute === 'library') {
+  if (currentRoute === 'search') {
     syncFilterInputValue(value);
     scheduleBookResults();
   } else {
@@ -120,7 +137,7 @@ createAutocomplete(document.getElementById('quickSearchInput'), {
   onSelect: (label) => {
     _browserFilters.query = label;
     _browserFilters.field = 'all';
-    if (currentRoute === 'search' || currentRoute === 'library') {
+    if (currentRoute === 'search') {
       syncFilterInputValue(label);
       updateBookResults({ resetScroll: true });
     } else {
@@ -163,7 +180,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.activeElement === quick && quick.value) {
     quick.value = '';
     _browserFilters.query = '';
-    if (currentRoute === 'search' || currentRoute === 'library') {
+    if (currentRoute === 'search') {
       syncFilterInputValue('');
       updateBookResults({ resetScroll: true });
     }

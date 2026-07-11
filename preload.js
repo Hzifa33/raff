@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('raff', {
   restoreBook: (book) => ipcRenderer.invoke('lib:restore', book),
   borrowCopy: (bookId, payload) => ipcRenderer.invoke('lib:borrow', bookId, payload),
   returnLoan: (bookId, loanId, returnedAt) => ipcRenderer.invoke('lib:return', bookId, loanId, returnedAt),
+  setReferenceNumber: (id, ref) => ipcRenderer.invoke('lib:setRef', id, ref),
   getStats: () => ipcRenderer.invoke('lib:stats'),
   getMeta: () => ipcRenderer.invoke('lib:meta'),
 
@@ -19,6 +20,10 @@ contextBridge.exposeInMainWorld('raff', {
   exportPdf: () => ipcRenderer.invoke('lib:exportPdf'),
   importJson: () => ipcRenderer.invoke('lib:importJson'),
   resetAll: () => ipcRenderer.invoke('lib:resetAll'),
+  backup: () => ipcRenderer.invoke('lib:backup'),
+  integrityCheck: () => ipcRenderer.invoke('lib:integrity'),
+  openDataFolder: () => ipcRenderer.invoke('lib:openDataFolder'),
+  exportOverdueCsv: () => ipcRenderer.invoke('lib:exportOverdueCsv'),
 
   openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
   getVersion: () => ipcRenderer.invoke('app:getVersion'),

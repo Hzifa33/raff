@@ -11,12 +11,47 @@
  * so switching dimensions or typing a name never rescans the whole library.
  */
 
+const RANK_COLUMNS = {
+  borrower: [
+    { key: 'value', label: 'المستعير', align: 'start' },
+    { key: 'activeLoans', label: 'بحوزته الآن' },
+    { key: 'totalLoans', label: 'إجمالي الإعارات' },
+    { key: 'avgDays', label: 'متوسط المدة', suffix: ' يوم' },
+    { key: 'maxDays', label: 'أطول مدة', suffix: ' يوم' },
+  ],
+  other: [
+    { key: 'value', label: 'القيمة', align: 'start' },
+    { key: 'titles', label: 'العناوين' },
+    { key: 'copies', label: 'النسخ' },
+    { key: 'borrowed', label: 'معارة' },
+    { key: 'available', label: 'متاحة' },
+    { key: 'worth', label: 'القيمة المالية' },
+  ],
+};
+
+/** Every open loan past the limit, newest-overdue first, across the library. */
+function collectOverdue(books, limitDays = 30) {
+  const out = [];
+  for (const book of books) {
+    for (const loan of book.loans || []) {
+      if (!loan.returnedAt && RaffBook.isOverdue(loan, limitDays)) {
+        out.push({ book, loan, days: RaffBook.loanDurationDays(loan) });
+      }
+    }
+  }
+  out.sort((a, b) => b.days - a.days);
+  return out;
+}
+
 const DIMENSIONS = {
   borrower: { key: 'borrower', label: 'المستعيرون', singular: 'المستعير', icon: 'user' },
   publisher: { key: 'publisher', label: 'دور النشر', singular: 'دار النشر', icon: 'building' },
   author: { key: 'author', label: 'المؤلفون', singular: 'المؤلف', icon: 'user' },
   category: { key: 'category', label: 'المجالات', singular: 'المجال', icon: 'tag' },
   year: { key: 'year', label: 'سنوات النشر', singular: 'سنة النشر', icon: 'calendar' },
+  shelf: { key: 'shelf', label: 'الرفوف', singular: 'الرف', icon: 'book' },
+  series: { key: 'series', label: 'السلاسل', singular: 'السلسلة', icon: 'layers' },
+  condition: { key: 'condition', label: 'حالة النسخ', singular: 'الحالة', icon: 'check' },
 };
 
 function _push(map, key, value) {
@@ -37,12 +72,18 @@ function buildReportIndex(books) {
   const author = new Map();
   const category = new Map();
   const year = new Map();
+  const shelf = new Map();
+  const series = new Map();
+  const condition = new Map();
 
   for (const book of books) {
     _push(publisher, (book.publisher || '').trim(), book);
     _push(author, (book.author || '').trim(), book);
     _push(category, (book.category || '').trim(), book);
     _push(year, (book.publishYear || '').toString().trim(), book);
+    _push(shelf, (book.shelf || '').trim(), book);
+    _push(series, (book.series || '').trim(), book);
+    _push(condition, (book.condition || 'جيدة').trim(), book);
 
     for (const loan of book.loans || []) {
       const name = (loan.borrowerName || '').trim();
@@ -50,7 +91,7 @@ function buildReportIndex(books) {
     }
   }
 
-  return { borrower, publisher, author, category, year, books };
+  return { borrower, publisher, author, category, year, shelf, series, condition, books };
 }
 
 function _avg(nums) {
@@ -69,8 +110,8 @@ function _sumCopies(books) {
   return { total, borrowed, available: total - borrowed };
 }
 
-/** Top values for a dimension, ordered by the most meaningful metric. */
-function rankDimension(index, dim, { limit = 100 } = {}) {
+/** Top values for a dimension, sortable by any available metric. */
+function rankDimension(index, dim, { limit = 500, sortKey = null, sortDir = 'desc' } = {}) {
   const map = index[dim];
   if (!map) return [];
   const rows = [];
@@ -81,30 +122,45 @@ function rankDimension(index, dim, { limit = 100 } = {}) {
       const durations = entries.map((e) => RaffBook.loanDurationDays(e.loan));
       rows.push({
         value: name,
-        primary: active.length,
-        totalLoans: entries.length,
         activeLoans: active.length,
+        totalLoans: entries.length,
         avgDays: _avg(durations),
         maxDays: durations.length ? Math.max(...durations) : 0,
       });
     }
-    rows.sort((a, b) => b.activeLoans - a.activeLoans || b.totalLoans - a.totalLoans);
   } else {
     for (const [value, books] of map) {
       const copies = _sumCopies(books);
+      const value_ = _sumValue(books);
       rows.push({
         value,
-        primary: books.length,
         titles: books.length,
         copies: copies.total,
         borrowed: copies.borrowed,
         available: copies.available,
+        worth: value_,
       });
     }
-    rows.sort((a, b) => b.titles - a.titles || b.copies - a.copies);
   }
 
+  const key = sortKey || (dim === 'borrower' ? 'activeLoans' : 'titles');
+  const dir = sortDir === 'asc' ? 1 : -1;
+  rows.sort((a, b) => {
+    if (key === 'value') return String(a.value).localeCompare(String(b.value), 'ar') * dir;
+    const av = a[key] ?? 0, bv = b[key] ?? 0;
+    if (av === bv) return String(a.value).localeCompare(String(b.value), 'ar');
+    return (av - bv) * dir;
+  });
+
   return rows.slice(0, limit);
+}
+
+function _sumValue(books) {
+  let sum = 0;
+  for (const b of books) {
+    if (typeof b.price === 'number' && b.price > 0) sum += b.price * RaffBook.totalCopies(b);
+  }
+  return Math.round(sum * 100) / 100;
 }
 
 /**
@@ -137,12 +193,12 @@ function reportFor(index, dim, value) {
         { label: 'تجاوز 30 يوماً', value: overdue.length, tone: overdue.length ? 'danger' : 'ok' },
         { label: 'كتب أُرجعت', value: returned.length },
       ],
-      columns: ['الكتاب', 'الرقم المرجعي', 'تاريخ الإعارة', 'تاريخ الإرجاع', 'المدة'],
+      columns: ['الكتاب', 'النطاق', 'تاريخ الإعارة', 'تاريخ الإرجاع', 'المدة'],
       rows: entries.map((e) => ({
         bookId: e.book.id,
         cells: [
           e.book.title || 'بدون عنوان',
-          e.book.referenceNumber,
+          RaffBook.loanScopeLabel(e.loan),
           formatDate(e.loan.borrowedAt),
           e.loan.returnedAt ? formatDate(e.loan.returnedAt) : '—',
           `${RaffBook.loanDurationDays(e.loan)} يوم`,
