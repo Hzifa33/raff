@@ -63,11 +63,14 @@
 
 <table>
 <tr>
-<td align="center" width="20%"><img src="https://icongr.am/feather/award.svg?size=90&color=b0894b" width="30" alt=""><br><b>مدارس ومراكز</b><br><sub>تعليمية</sub></td>
-<td align="center" width="20%"><img src="https://icongr.am/feather/book.svg?size=90&color=b0894b" width="30" alt=""><br><b>مكتبات كبيرة</b><br><sub>عامة وخاصة</sub></td>
-<td align="center" width="20%"><img src="https://icongr.am/feather/printer.svg?size=90&color=b0894b" width="30" alt=""><br><b>دور النشر</b><br><sub>وإدارة المخزون</sub></td>
-<td align="center" width="20%"><img src="https://icongr.am/feather/book-open.svg?size=90&color=b0894b" width="30" alt=""><br><b>مكتبات المساجد</b><br><sub>والأوقاف</sub></td>
-<td align="center" width="20%"><img src="https://icongr.am/feather/search.svg?size=90&color=b0894b" width="30" alt=""><br><b>باحثون</b><br><sub>وأمناء مكتبات</sub></td>
+<td align="center" width="33%"><img src="https://icongr.am/feather/award.svg?size=120&color=b0894b" width="40" alt=""><br><b>مدارس ومراكز</b><br><sub>تعليمية</sub></td>
+<td align="center" width="33%"><img src="https://icongr.am/feather/book.svg?size=120&color=b0894b" width="40" alt=""><br><b>مكتبات كبيرة</b><br><sub>عامة وخاصة</sub></td>
+<td align="center" width="33%"><img src="https://icongr.am/feather/printer.svg?size=120&color=b0894b" width="40" alt=""><br><b>دور النشر</b><br><sub>وإدارة المخزون</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="https://icongr.am/feather/book-open.svg?size=120&color=b0894b" width="40" alt=""><br><b>مكتبات المساجد</b><br><sub>والأوقاف</sub></td>
+<td align="center"><img src="https://icongr.am/feather/search.svg?size=120&color=b0894b" width="40" alt=""><br><b>باحثون</b><br><sub>وأمناء مكتبات</sub></td>
+<td align="center"><img src="https://icongr.am/feather/database.svg?size=120&color=b0894b" width="40" alt=""><br><b>مكتبات ضخمة</b><br><sub>بآلاف العناوين</sub></td>
 </tr>
 </table>
 
@@ -82,57 +85,57 @@
 ### <img src="https://icongr.am/feather/book.svg?size=54&color=b0894b" width="18" align="center" alt=""> الفهرسة وبيانات الجرد
 
 <table>
-<tr><td><img src="https://icongr.am/feather/file-text.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>البيانات الأساسية</b></td><td>اسم الكتاب، المؤلف، دار النشر، التصنيف، الطبعة، سنة النشر، والملاحظات.</td></tr>
-<tr><td><img src="https://icongr.am/feather/folder.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>حقول جرد موسّعة</b></td><td>السلسلة، الترتيب داخل السلسلة، الكلمات المفتاحية، حالة النسخة (جيدة/مقبولة/تالفة/مفقودة)، جهة الاقتناء، والرف.</td></tr>
-<tr><td><img src="https://icongr.am/feather/dollar-sign.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>السعر وعدد الأجزاء</b></td><td>لكل كتاب (اختياريان)، ويظهران في التصدير والتقارير.</td></tr>
-<tr><td><img src="https://icongr.am/feather/type.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>اقتراحات تلقائية</b></td><td>أثناء الكتابة للمؤلف، دار النشر، التصنيف، السلسلة، والرف.</td></tr>
+<tr><td><img src="https://icongr.am/feather/file-text.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>البيانات الأساسية</b></td><td>اسم الكتاب، المؤلف، دار النشر، التصنيف، الطبعة، سنة النشر، والملاحظات.</td></tr>
+<tr><td><img src="https://icongr.am/feather/folder.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>حقول جرد موسّعة</b></td><td>السلسلة، الترتيب داخل السلسلة، الكلمات المفتاحية، حالة النسخة (جيدة/مقبولة/تالفة/مفقودة)، جهة الاقتناء، والرف.</td></tr>
+<tr><td><img src="https://icongr.am/feather/dollar-sign.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>السعر وعدد الأجزاء</b></td><td>لكل كتاب (اختياريان)، ويظهران في التصدير والتقارير.</td></tr>
+<tr><td><img src="https://icongr.am/feather/type.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>اقتراحات تلقائية</b></td><td>أثناء الكتابة للمؤلف، دار النشر، التصنيف، السلسلة، والرف.</td></tr>
 </table>
 
 ### <img src="https://icongr.am/feather/search.svg?size=54&color=b0894b" width="18" align="center" alt=""> البحث
 
 <table>
-<tr><td><img src="https://icongr.am/feather/zap.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>بحث فوري ذكي</b></td><td>لا يتأثّر بالتشكيل أو التطويل، ويفهم اختلاف الحروف: أ، إ، آ، ا، ى، ي، ة، ه.</td></tr>
-<tr><td><img src="https://icongr.am/feather/target.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>البحث المتقدم</b></td><td>يغطّي العنوان، المؤلف، دار النشر، الرقم المرجعي، التصنيف، <b>السلسلة، الرف، الكلمات المفتاحية</b>، والمستعير.</td></tr>
-<tr><td><img src="https://icongr.am/feather/grid.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>السجل الكامل</b></td><td>جدول احترافي قابل للفرز بكل عمود (العنوان، المؤلف، السنة، السعر، الحالة…)، مع فلاتر: متاح، جزئي، معار، <b>متأخر</b>، و<b>يستحق قريبًا</b>، وتصفية بمدى سعري. يعرض النتائج على دفعات لأداء ثابت مهما كبرت المكتبة.</td></tr>
+<tr><td><img src="https://icongr.am/feather/zap.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>بحث فوري ذكي</b></td><td>لا يتأثّر بالتشكيل أو التطويل، ويفهم اختلاف الحروف: أ، إ، آ، ا، ى، ي، ة، ه.</td></tr>
+<tr><td><img src="https://icongr.am/feather/target.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>البحث المتقدم</b></td><td>يغطّي العنوان، المؤلف، دار النشر، الرقم المرجعي، التصنيف، <b>السلسلة، الرف، الكلمات المفتاحية</b>، والمستعير.</td></tr>
+<tr><td><img src="https://icongr.am/feather/grid.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>السجل الكامل</b></td><td>جدول احترافي قابل للفرز بكل عمود (العنوان، المؤلف، السنة، السعر، الحالة…)، مع فلاتر: متاح، جزئي، معار، <b>متأخر</b>، و<b>يستحق قريبًا</b>، وتصفية بمدى سعري. يعرض النتائج على دفعات لأداء ثابت مهما كبرت المكتبة.</td></tr>
 </table>
 
 ### <img src="https://icongr.am/feather/bookmark.svg?size=54&color=b0894b" width="18" align="center" alt=""> الأرقام المرجعية
 
 <table>
-<tr><td><img src="https://icongr.am/feather/tag.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>رقم تلقائي</b></td><td>يُنشأ لكل كتاب لتسهيل ترتيبه على الرف.</td></tr>
-<tr><td><img src="https://icongr.am/feather/edit-2.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>تعديل مرن ومحمي</b></td><td>يمكن تعديل الرقم بعد الإضافة ومن نافذة التفاصيل، مع <b>حماية من التكرار</b> عند التعديل والاستيراد.</td></tr>
+<tr><td><img src="https://icongr.am/feather/tag.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>رقم تلقائي</b></td><td>يُنشأ لكل كتاب لتسهيل ترتيبه على الرف.</td></tr>
+<tr><td><img src="https://icongr.am/feather/edit-2.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>تعديل مرن ومحمي</b></td><td>يمكن تعديل الرقم بعد الإضافة ومن نافذة التفاصيل، مع <b>حماية من التكرار</b> عند التعديل والاستيراد.</td></tr>
 </table>
 
 ### <img src="https://icongr.am/feather/repeat.svg?size=54&color=b0894b" width="18" align="center" alt=""> نظام الإعارة
 
 <table>
-<tr><td><img src="https://icongr.am/feather/book.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>إعارة مرنة</b></td><td>نسخة <b>كاملة</b> أو <b>جزء محدد برقمه</b> للكتب متعددة الأجزاء، وتُحسب الإتاحة لكل جزء على حدة.</td></tr>
-<tr><td><img src="https://icongr.am/feather/calendar.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>موعد إرجاع تلقائي</b></td><td>بعد 30 يومًا، قابل للتعديل عند الإعارة.</td></tr>
-<tr><td><img src="https://icongr.am/feather/phone.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>بيانات المستعير</b></td><td>وسيلة تواصل للمستعير وملاحظة قصيرة لكل إعارة.</td></tr>
-<tr><td><img src="https://icongr.am/feather/bell.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>تنبيهات ذكية</b></td><td>«متأخر» و«يستحق خلال N يوم»، مع <b>تصدير CSV للإعارات المتأخرة فقط</b>.</td></tr>
+<tr><td><img src="https://icongr.am/feather/book.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>إعارة مرنة</b></td><td>نسخة <b>كاملة</b> أو <b>جزء محدد برقمه</b> للكتب متعددة الأجزاء، وتُحسب الإتاحة لكل جزء على حدة.</td></tr>
+<tr><td><img src="https://icongr.am/feather/calendar.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>موعد إرجاع تلقائي</b></td><td>بعد 30 يومًا، قابل للتعديل عند الإعارة.</td></tr>
+<tr><td><img src="https://icongr.am/feather/phone.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>بيانات المستعير</b></td><td>وسيلة تواصل للمستعير وملاحظة قصيرة لكل إعارة.</td></tr>
+<tr><td><img src="https://icongr.am/feather/bell.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>تنبيهات ذكية</b></td><td>«متأخر» و«يستحق خلال N يوم»، مع <b>تصدير CSV للإعارات المتأخرة فقط</b>.</td></tr>
 </table>
 
 ### <img src="https://icongr.am/feather/bar-chart-2.svg?size=54&color=b0894b" width="18" align="center" alt=""> لوحة المعلومات والتقارير
 
 <table>
-<tr><td><img src="https://icongr.am/feather/trending-up.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>لوحة معلومات ذكية</b></td><td>الإعارات المتأخرة، المستحقة خلال 7 أيام، نسبة اكتمال بيانات الجرد، قيمة الكتب المسعّرة، أعلى كتاب سعرًا، وعدد العناوين متعددة الأجزاء.</td></tr>
-<tr><td><img src="https://icongr.am/feather/compass.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>استدعاءات قابلة للفرز</b></td><td>حسب أي عمود، عبر ثمانية أبعاد: المستعيرون، دور النشر، المؤلفون، المجالات، سنوات النشر، <b>الرفوف، السلاسل، وحالة النسخ</b>.</td></tr>
+<tr><td><img src="https://icongr.am/feather/trending-up.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>لوحة معلومات ذكية</b></td><td>الإعارات المتأخرة، المستحقة خلال 7 أيام، نسبة اكتمال بيانات الجرد، قيمة الكتب المسعّرة، أعلى كتاب سعرًا، وعدد العناوين متعددة الأجزاء.</td></tr>
+<tr><td><img src="https://icongr.am/feather/compass.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>استدعاءات قابلة للفرز</b></td><td>حسب أي عمود، عبر ثمانية أبعاد: المستعيرون، دور النشر، المؤلفون، المجالات، سنوات النشر، <b>الرفوف، السلاسل، وحالة النسخ</b>.</td></tr>
 </table>
 
 ### <img src="https://icongr.am/feather/shield.svg?size=54&color=b0894b" width="18" align="center" alt=""> التخزين والأمان
 
 <table>
-<tr><td><img src="https://icongr.am/feather/settings.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>تخزين أخف وأسرع</b></td><td>مع بقاء تصدير JSON منسّقًا ومقروءًا، وكتابة آمنة لا تُتلف الملف عند انقطاعها.</td></tr>
-<tr><td><img src="https://icongr.am/feather/save.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>نسخ أمان تلقائية</b></td><td>قبل الاستيراد وقبل حذف كل البيانات، وزر نسخة فورية (يُحتفظ بأحدث 20 نسخة).</td></tr>
-<tr><td><img src="https://icongr.am/feather/activity.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>فحص سلامة البيانات</b></td><td>يكشف المتأخرات، الحقول الناقصة، الأرقام المكررة، والعناوين المكررة المحتملة.</td></tr>
-<tr><td><img src="https://icongr.am/feather/folder.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>وصول مباشر للبيانات</b></td><td>زر لفتح مجلد بيانات البرنامج مباشرةً.</td></tr>
+<tr><td><img src="https://icongr.am/feather/settings.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>تخزين أخف وأسرع</b></td><td>مع بقاء تصدير JSON منسّقًا ومقروءًا، وكتابة آمنة لا تُتلف الملف عند انقطاعها.</td></tr>
+<tr><td><img src="https://icongr.am/feather/save.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>نسخ أمان تلقائية</b></td><td>قبل الاستيراد وقبل حذف كل البيانات، وزر نسخة فورية (يُحتفظ بأحدث 20 نسخة).</td></tr>
+<tr><td><img src="https://icongr.am/feather/activity.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>فحص سلامة البيانات</b></td><td>يكشف المتأخرات، الحقول الناقصة، الأرقام المكررة، والعناوين المكررة المحتملة.</td></tr>
+<tr><td><img src="https://icongr.am/feather/folder.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>وصول مباشر للبيانات</b></td><td>زر لفتح مجلد بيانات البرنامج مباشرةً.</td></tr>
 </table>
 
 ### <img src="https://icongr.am/feather/upload.svg?size=54&color=b0894b" width="18" align="center" alt=""> التصدير · <img src="https://icongr.am/feather/lock.svg?size=54&color=b0894b" width="18" align="center" alt=""> الخصوصية
 
 <table>
-<tr><td><img src="https://icongr.am/feather/upload.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>صيغ متعددة</b></td><td>تصدير المكتبة إلى <b>JSON، CSV، TXT، وPDF</b>، بالإضافة إلى CSV للمتأخرات.</td></tr>
-<tr><td><img src="https://icongr.am/feather/lock.svg?size=60&color=b0894b" width="20" alt=""></td><td><b>خصوصية كاملة</b></td><td>يعمل محليًا ولا يرسل بيانات مكتبتك إلى أي خادم خارجي، وبلا تتبّع أو إعلانات.</td></tr>
+<tr><td><img src="https://icongr.am/feather/upload.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>صيغ متعددة</b></td><td>تصدير المكتبة إلى <b>JSON، CSV، TXT، وPDF</b>، بالإضافة إلى CSV للمتأخرات.</td></tr>
+<tr><td><img src="https://icongr.am/feather/lock.svg?size=78&color=b0894b" width="26" alt=""></td><td><b>خصوصية كاملة</b></td><td>يعمل محليًا ولا يرسل بيانات مكتبتك إلى أي خادم خارجي، وبلا تتبّع أو إعلانات.</td></tr>
 </table>
 
 ---
