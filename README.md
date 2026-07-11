@@ -14,7 +14,7 @@
 <p><em>أضف الكتاب مرّة… ثم اعثر عليه في ثوانٍ.</em></p>
 
 <p>
-  <img src="https://img.shields.io/badge/version-0.5.0-8B5E34?style=for-the-badge&labelColor=3E2C1C" alt="version">
+  <img src="https://img.shields.io/badge/version-0.9.9-8B5E34?style=for-the-badge&labelColor=3E2C1C" alt="version">
   <img src="https://img.shields.io/badge/platform-Windows-2B6CB0?style=for-the-badge&labelColor=1A365D" alt="platform">
   <img src="https://img.shields.io/badge/Electron-31-44566C?style=for-the-badge&logo=electron&logoColor=white&labelColor=2D3748" alt="Electron">
   <img src="https://img.shields.io/badge/license-MIT-2F855A?style=for-the-badge&labelColor=22543D" alt="license">
@@ -23,17 +23,19 @@
 <p>
   <img src="https://img.shields.io/badge/Offline_First-✓-4B6350?style=flat-square&labelColor=2F3E33" alt="offline">
   <img src="https://img.shields.io/badge/Arabic_RTL_UI-✓-C19A2E?style=flat-square&labelColor=6B5518" alt="rtl">
+  <img src="https://img.shields.io/badge/Barcode_·_Scanner-✓-8B5E34?style=flat-square&labelColor=3E2C1C" alt="barcode">
   <img src="https://img.shields.io/badge/No_Ads_·_No_Tracking-✓-732E2E?style=flat-square&labelColor=451B1B" alt="privacy">
   <img src="https://img.shields.io/badge/Bundled_Fonts-✓-44566C?style=flat-square&labelColor=2D3748" alt="fonts">
 </p>
 
-<p dir="rtl"><sub>يعمل بلا إنترنت · واجهة عربية كاملة (RTL) · بلا إعلانات ولا تتبّع · خطوط مدمجة</sub></p>
+<p dir="rtl"><sub>يعمل بلا إنترنت · واجهة عربية كاملة (RTL) · باركود ومسح ضوئي · بلا إعلانات ولا تتبّع · خطوط مدمجة</sub></p>
 
 <br>
 
 <!-- شريط تنقّل سريع -->
 <a href="#-عن-رَفّ">عن رَفّ</a> ·
 <a href="#-المميزات">المميزات</a> ·
+<a href="#-الباركود-والمسح-الضوئي-">الباركود</a> ·
 <a href="#-التحميل">التحميل</a> ·
 <a href="#-الأمان-والتحقّق">الأمان</a> ·
 <a href="#-الخصوصية-ومكان-البيانات">الخصوصية</a> ·
@@ -78,7 +80,7 @@
 
 ## ✦ المميزات
 
-> رحلة كتاب واحد في رَفّ: **يُسجَّل مرّة** ← يأخذ **رقمًا مرجعيًا** ← يُعار **كاملًا أو جزءًا** ← يظهر في **البحث واللوحة والتقارير** فورًا.
+> رحلة كتاب واحد في رَفّ: **يُسجَّل مرّة** ← يأخذ **رقمًا مرجعيًا وباركود** ← يُعار **كاملًا أو جزءًا** ← يُمسَح بالقارئ لعرض بياناته ← يظهر في **البحث واللوحة والتقارير** فورًا.
 
 <br>
 
@@ -104,6 +106,16 @@
 <table>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/tag.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>رقم تلقائي</b></td><td valign="middle">يُنشأ لكل كتاب لتسهيل ترتيبه على الرف.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/edit-2.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>تعديل مرن ومحمي</b></td><td valign="middle">يمكن تعديل الرقم بعد الإضافة ومن نافذة التفاصيل، مع <b>حماية من التكرار</b> عند التعديل والاستيراد.</td></tr>
+</table>
+
+### <img src="https://icongr.am/feather/maximize.svg?size=54&color=b0894b" width="18" align="center" alt=""> الباركود والمسح الضوئي <img src="https://img.shields.io/badge/NEW-8B5E34?style=flat-square&labelColor=3E2C1C" alt="new">
+
+<table>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/bar-chart.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>توليد باركود</b></td><td valign="middle">باركود <b>Code 128</b> يُولَّد تلقائيًا من الرقم المرجعي لكل كتاب — بلا إنترنت، ويظهر فور الإضافة وفي صفحة المسح.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/maximize.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>قارئ آلي من أي شاشة</b></td><td valign="middle">قارئ الباركود USB يعمل تلقائيًا من أي مكان في البرنامج (يعمل كلوحة مفاتيح)، ويميّز المسح عن الكتابة اليدوية بذكاء.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/file-text.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>صفحة بيانات فورية</b></td><td valign="middle">بمجرد المسح تظهر <b>صفحة الكتاب كاملة</b>: العنوان، المؤلف، السعر، الرف، الأجزاء، الإتاحة، والإعارات المفتوحة.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/printer.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>طباعة ملصقات احترافية</b></td><td valign="middle">ملصق مفرد، أو ورقة لكل المكتبة، أو حسب رف/مجال/سلسلة، أو <b>حسب نطاق رقمي</b> (مثل raf-0001 إلى raf-0100).</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/award.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>هوية المؤسسة على الملصق</b></td><td valign="middle"><b>شعار واسم المكتبة</b> على كل ملصق، مع إطار أنيق، وعدد أعمدة قابل للضبط، ومعلومات دقيقة شبه خفية (microtext) عن الكتاب.</td></tr>
 </table>
 
 ### <img src="https://icongr.am/feather/repeat.svg?size=54&color=b0894b" width="18" align="center" alt=""> نظام الإعارة
@@ -165,19 +177,15 @@
 
 <br>
 
-استخدم قيمة **SHA256** التالية للتحقق من أن الملف الذي حمّلته هو نفس الملف المنشور رسميًا:
-
-```text
-b4edfb2fff28e8afd994cca949ebd9ecf950d996c10217546401b1fd16ead5ca
-```
+بعد بناء نسخة **0.9.9**، احسب قيمة **SHA256** لملف الإصدار وضعها هنا لينشرها المستخدمون ويتحققوا بها من سلامة الملف. تتغيّر هذه القيمة مع كل إصدار جديد، لذا احرص على تحديثها قبل النشر.
 
 للتحقق على **Windows PowerShell**، افتح PowerShell داخل مجلد التحميل ونفّذ:
 
 ```powershell
-certutil -hashfile Raf_Portable_0.5.0.zip SHA256
+certutil -hashfile Raf_Portable_0.9.9.zip SHA256
 ```
 
-قارن الناتج بالقيمة أعلاه؛ يجب أن يتطابقا حرفًا بحرف.
+قارن الناتج بالقيمة المنشورة رسميًا لهذا الإصدار؛ يجب أن يتطابقا حرفًا بحرف.
 
 </details>
 
@@ -283,7 +291,7 @@ npm run dist:win
 <tr><td><code>preload.js</code></td><td>جسر آمن بين الواجهة وعمليات النظام</td></tr>
 <tr><td><code>src/index.html</code></td><td>واجهة التطبيق</td></tr>
 <tr><td><code>src/css/</code></td><td>التصميم والخطوط والألوان</td></tr>
-<tr><td><code>src/js/</code></td><td>منطق الواجهة والفهرسة والبحث والتقارير والإعارة</td></tr>
+<tr><td><code>src/js/</code></td><td>منطق الواجهة والفهرسة والبحث والتقارير والإعارة والباركود والمسح</td></tr>
 <tr><td><code>assets/</code></td><td>الشعار والأيقونات</td></tr>
 <tr><td><code>.github/workflows/</code></td><td>بناء نسخة Windows تلقائيًا عبر GitHub Actions</td></tr>
 </table>
