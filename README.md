@@ -37,7 +37,8 @@
 <a href="#-المميزات">المميزات</a> ·
 <a href="#-الباركود-والمسح-الضوئي-">الباركود</a> ·
 <a href="#-التحميل">التحميل</a> ·
-<a href="#-الأمان-والتحقّق">الأمان</a> ·
+<a href="#-متطلبات-التشغيل">المتطلبات</a> ·
+<a href="#-المعمارية">المعمارية</a> ·
 <a href="#-الخصوصية-ومكان-البيانات">الخصوصية</a> ·
 <a href="#-للمطوّرين">للمطوّرين</a> ·
 <a href="#-الترخيص">الترخيص</a>
@@ -187,6 +188,20 @@
 
 ---
 
+## ✦ متطلبات التشغيل
+
+رَفّ خفيف ولا يحتاج جهازًا قويًا؛ يعمل بسلاسة على أجهزة المكاتب العادية.
+
+<table>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/monitor.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>نظام التشغيل</b></td><td valign="middle"><b>Windows 10</b> أو أحدث (64-بت). تتوفّر أيضًا نسخة <b>Linux</b> بصيغة AppImage.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/cpu.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>المعالج والذاكرة</b></td><td valign="middle">أي معالج 64-بت حديث، و<b>2 جيجابايت RAM</b> على الأقل (يُفضّل 4 جيجابايت للمكتبات الكبيرة).</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/hard-drive.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>مساحة القرص</b></td><td valign="middle">نحو <b>250 ميجابايت</b> للبرنامج، إضافة إلى مساحة صغيرة تنمو ببطء مع بيانات المكتبة والنسخ الاحتياطية.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/wifi-off.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>الإنترنت</b></td><td valign="middle"><b>غير مطلوب إطلاقًا.</b> كل الميزات — بما فيها توليد الباركود والطباعة — تعمل بلا اتصال.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/maximize.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>الماسح والطابعة</b></td><td valign="middle"><b>اختياريان.</b> أي قارئ باركود USB (يعمل كلوحة مفاتيح) دون تعريفات، وأي طابعة عادية لورق A4.</td></tr>
+</table>
+
+---
+
 ## ✦ الأمان والتحقّق
 
 <details open>
@@ -252,6 +267,24 @@ backups
 ```
 
 يمكنك الوصول إلى المجلد مباشرةً من زر **«فتح مجلد بيانات البرنامج»** داخل الإعدادات.
+
+---
+
+## ✦ المعمارية
+
+رَفّ تطبيق سطح مكتب مبني على **Electron**، مصمَّم عمدًا ليكون **بلا اعتماديات أصلية (native)** — فلا حاجة لإعادة بناء وحدات لكل نظام، وهو سبب شائع لتعطّل المثبّتات.
+
+<table>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/layers.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>الطبقة التقنية</b></td><td valign="middle"><b>Electron 31</b> (Chromium 126 + Node.js 20)، وواجهة بـ <b>HTML/CSS/JavaScript</b> خالص دون أُطر ثقيلة — أخف وأسرع في الإقلاع.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/shield.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>عزل العمليات</b></td><td valign="middle">فصل صارم بين العملية الرئيسية والواجهة مع <b>Context Isolation</b>، وجسر <code>preload</code> آمن يكشف واجهة محدودة فقط — لا وصول مباشر لنظام الملفات من الواجهة.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/database.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>مخزن بيانات محلي</b></td><td valign="middle">ملف <b>JSON</b> واحد بلا قاعدة بيانات خارجية، مع <b>كتابة ذرّية</b> لا تُتلف الملف عند الانقطاع، و<b>ترقية تلقائية</b> للمخطّط تحافظ على البيانات القديمة.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/zap.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>أداء ثابت</b></td><td valign="middle"><b>فهرسة في الذاكرة</b> للبحث الفوري، و<b>عرض افتراضي (virtual list)</b> يرسم الصفوف المرئية فقط — فيبقى الجدول سريعًا مع آلاف العناوين.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/lock.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>حدود أمنية</b></td><td valign="middle"><b>سياسة أمان محتوى (CSP)</b> صارمة، والباركود يُولَّد محليًا بلا خدمات خارجية، والشعار المرفوع يُتحقَّق منه ليكون صورة فقط (يرفض أي حقن).</td></tr>
+</table>
+
+<div align="center" dir="rtl">
+<sub>مبدأ التصميم: كل ميزة تعمل محليًا وبلا إنترنت، والبيانات ملك المستخدم وحده.</sub>
+</div>
 
 ---
 
