@@ -87,7 +87,8 @@ function defaultSettings() {
   return {
     institutionName: '',   // اسم المكتبة/المؤسسة على الملصقات
     logo: '',              // شعار كـ data URL (base64) — يبقى محلياً
-    labelColumns: 3,       // عدد الأعمدة في ورقة الملصقات
+    labelColumns: 4,       // عدد الأعمدة في ورقة A4
+    labelSize: 'small',    // small | medium — حجم الملصق للصق خلف الكتاب
     labelShowPrice: true,
     labelShowShelf: true,
     labelShowMicrotext: true, // معلومات دقيقة شبه خفية
@@ -255,6 +256,9 @@ class Store {
       const n = Math.floor(Number(patch.labelColumns));
       next.labelColumns = (n >= 1 && n <= 5) ? n : cur.labelColumns;
     }
+    if (patch.labelSize !== undefined) {
+      next.labelSize = ['small', 'medium'].includes(patch.labelSize) ? patch.labelSize : cur.labelSize;
+    }
     for (const k of ['labelShowPrice', 'labelShowShelf', 'labelShowMicrotext']) {
       if (patch[k] !== undefined) next[k] = !!patch[k];
     }
@@ -322,10 +326,34 @@ class Store {
     return 'raf-' + String(seq).padStart(4, '0');
   }
 
+  /**
+   * Returns what the next auto reference number *would* be, without consuming
+   * the sequence. Used to preview the number in the add form as the user types.
+   */
+  peekNextReferenceNumber() {
+    const seq = this.db.nextRefSeq || 1;
+    return 'raf-' + String(seq).padStart(4, '0');
+  }
+
   addBook(book, { keepReferenceNumber = false, defer = false } = {}) {
-    const referenceNumber = (keepReferenceNumber && (book.referenceNumber || '').trim())
-      ? book.referenceNumber.trim()
-      : this._nextReferenceNumber();
+    const requested = (book.referenceNumber || '').trim();
+    let referenceNumber;
+    if (keepReferenceNumber && requested) {
+      // Import path: keep the incoming number as-is (import de-dupes upstream).
+      referenceNumber = requested;
+    } else if (requested) {
+      // Form path: the user typed or edited a reference. Honor it, but never
+      // allow a duplicate to slip in.
+      if (this.db.books.some((b) => b.referenceNumber === requested)) {
+        return { ok: false, error: 'الرقم المرجعي مستخدم بالفعل' };
+      }
+      referenceNumber = requested;
+      // Keep the auto-sequence ahead of any manually chosen number.
+      const m = /(\d+)\s*$/.exec(requested);
+      if (m) this.db.nextRefSeq = Math.max(this.db.nextRefSeq || 1, parseInt(m[1], 10) + 1);
+    } else {
+      referenceNumber = this._nextReferenceNumber();
+    }
 
     const record = {
       id: genId(),

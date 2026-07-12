@@ -745,6 +745,7 @@ function showSavedBookModal(record, { andNew = false } = {}) {
 
       <div class="form-actions" style="justify-content:center;">
         <button class="btn btn-outline" id="printLabelBtn">${icon('printer')} طباعة الملصق</button>
+        <button class="btn btn-outline" id="pdfLabelBtn">${icon('download')} حفظ PDF</button>
         <button class="btn btn-outline" id="copyRefBtn">${icon('hash')} نسخ الرقم</button>
         <button class="btn btn-primary" id="closeRefModal">${icon('check')} تم</button>
       </div>
@@ -805,6 +806,10 @@ function showSavedBookModal(record, { andNew = false } = {}) {
       overlay.querySelector('#printLabelBtn').addEventListener('click', () => {
         const fresh = RAFF_STATE.books.find((b) => b.id === record.id) || record;
         printBarcodeLabels([fresh], fresh.title);
+      });
+      overlay.querySelector('#pdfLabelBtn').addEventListener('click', () => {
+        const fresh = RAFF_STATE.books.find((b) => b.id === record.id) || record;
+        saveBarcodeLabelsPdf([fresh], fresh.title);
       });
 
       overlay.querySelector('#copyRefBtn').addEventListener('click', async () => {
@@ -867,9 +872,10 @@ function renderAddForm(root, editingBook) {
             <label>${icon('hash')} الرقم المرجعي</label>
             <input type="text" name="referenceNumber" value="${escapeHtml(b.referenceNumber)}" />
           </div>` : `
-          <div class="field">
+          <div class="field" id="field-ref">
             <label>${icon('hash')} الرقم المرجعي</label>
-            <input type="text" value="يُنشأ تلقائياً بعد الحفظ" disabled />
+            <input type="text" name="referenceNumber" id="refInput" value="" placeholder="يظهر تلقائياً عند كتابة اسم الكتاب" dir="ltr" autocomplete="off" />
+            <span class="hint" id="refHint">يُقترح رقم تلقائي — يمكنك تعديله</span>
           </div>`}
 
           <div class="field">
@@ -1007,6 +1013,7 @@ function renderAddForm(root, editingBook) {
         navigateTo('library');
       } else {
         const record = await window.raff.addBook(data);
+        if (record && record.ok === false) { toast(record.error || 'تعذّر إضافة الكتاب', 'error'); return; }
         await refreshState();
         renderNavCounts();
         navigateTo(andNew ? 'add' : 'library');
@@ -1042,17 +1049,41 @@ function categoryPool() {
    Library table (distinct from search: columnar, sortable, dense)
    ========================================================= */
 const LIBRARY_COLUMNS = [
-  { key: 'title', label: 'العنوان', align: 'start', grow: 1.6 },
-  { key: 'author', label: 'المؤلف', align: 'start', grow: 1.1 },
-  { key: 'publisher', label: 'دار النشر', align: 'start', grow: 1.1, hide: 'md' },
-  { key: 'category', label: 'المجال', align: 'start', grow: 0.9, hide: 'narrow' },
-  { key: 'publishYear', label: 'السنة', align: 'center', grow: 0.6, hide: 'narrow' },
-  { key: 'volumes', label: 'أجزاء', align: 'center', grow: 0.5, hide: 'md' },
-  { key: 'price', label: 'السعر', align: 'center', grow: 0.7, hide: 'narrow' },
-  { key: 'availableCopies', label: 'متاح/الكل', align: 'center', grow: 0.7 },
-  { key: 'status', label: 'الحالة', align: 'center', grow: 0.9 },
-  { key: 'referenceNumber', label: 'الرقم المرجعي', align: 'center', grow: 0.9, ltr: true },
+  { key: 'title', label: 'العنوان', align: 'start', grow: 1.6, min: 150 },
+  { key: 'author', label: 'المؤلف', align: 'start', grow: 1.1, min: 110 },
+  { key: 'publisher', label: 'دار النشر', align: 'start', grow: 1.1, min: 110, hide: 'md' },
+  { key: 'category', label: 'المجال', align: 'start', grow: 0.9, min: 90, hide: 'narrow' },
+  { key: 'publishYear', label: 'السنة', align: 'center', grow: 0.6, min: 64, hide: 'narrow' },
+  { key: 'createdAt', label: 'تاريخ الإضافة', align: 'center', grow: 0.9, min: 104, hide: 'md' },
+  { key: 'volumes', label: 'أجزاء', align: 'center', grow: 0.5, min: 60, hide: 'md' },
+  { key: 'price', label: 'السعر', align: 'center', grow: 0.7, min: 70, hide: 'narrow' },
+  { key: 'availableCopies', label: 'متاح / الكل', align: 'center', grow: 0.8, min: 96 },
+  { key: 'status', label: 'الحالة', align: 'center', grow: 0.9, min: 96 },
+  { key: 'referenceNumber', label: 'الرقم المرجعي', align: 'center', grow: 1, min: 130, ltr: true },
 ];
+
+// User-adjusted column widths (px), keyed by column key. Empty = use fr grow.
+let _libColWidths = {};
+let _libResizeHandler = null;
+let _libVisibleCount = 0;
+
+/** Columns visible at the current viewport width (mirrors the CSS breakpoints). */
+function visibleLibColumns() {
+  const w = window.innerWidth;
+  return LIBRARY_COLUMNS.filter((c) => {
+    if (c.hide === 'md' && w <= 1280) return false;
+    if (c.hide === 'narrow' && w <= 1180) return false;
+    return true;
+  });
+}
+
+/** Builds the CSS grid template string from the currently visible columns. */
+function libGridTemplate() {
+  return visibleLibColumns().map((c) => {
+    const wpx = _libColWidths[c.key];
+    return wpx ? `${wpx}px` : `minmax(${c.min || 80}px, ${c.grow}fr)`;
+  }).join(' ');
+}
 
 const LIB_ROW_HEIGHT = 44;
 const LIB_ROW_GAP = 0;
@@ -1069,6 +1100,7 @@ function libCellValue(book, key) {
     case 'status': return RaffBook.bookStatus(book);
     case 'price': return typeof book.price === 'number' ? book.price : -1;
     case 'volumes': return book.volumes || 1;
+    case 'createdAt': return Date.parse(book.createdAt) || 0;
     default: return book[key];
   }
 }
@@ -1077,7 +1109,7 @@ const LIB_COLLATOR = new Intl.Collator('ar', { numeric: true, sensitivity: 'base
 
 function sortLibrary(books, { key, dir }) {
   const d = dir === 'asc' ? 1 : -1;
-  const numeric = new Set(['availableCopies', 'price', 'volumes']);
+  const numeric = new Set(['availableCopies', 'price', 'volumes', 'createdAt']);
   const arr = [...books];
   if (numeric.has(key)) {
     arr.sort((a, b) => ((libCellValue(a, key) ?? 0) - (libCellValue(b, key) ?? 0)) * d);
@@ -1093,7 +1125,8 @@ function sortLibrary(books, { key, dir }) {
 function renderLibraryTable(root) {
   if (_libVlist) { _libVlist.destroy(); _libVlist = null; }
 
-  const gridTemplate = LIBRARY_COLUMNS.map((c) => `minmax(0, ${c.grow}fr)`).join(' ');
+  const cols = visibleLibColumns();
+  const gridTemplate = libGridTemplate();
 
   root.innerHTML = `
     <div class="panel library-panel">
@@ -1119,11 +1152,14 @@ function renderLibraryTable(root) {
 
       <div class="lib-table" style="--lib-cols:${gridTemplate};">
         <div class="lib-head" id="libHead">
-          ${LIBRARY_COLUMNS.map((c) => `
-            <button class="lib-th sortable ${c.hide ? 'hide-' + c.hide : ''} ${c.key === _libSort.key ? 'sorted' : ''}"
-              data-sort="${c.key}" style="text-align:${c.align === 'start' ? 'right' : 'center'};">
-              ${escapeHtml(c.label)}<span class="sort-arrow">${c.key === _libSort.key ? (_libSort.dir === 'asc' ? '▲' : '▼') : ''}</span>
-            </button>`).join('')}
+          ${cols.map((c, i) => `
+            <div class="lib-th-wrap">
+              <button class="lib-th sortable ${c.key === _libSort.key ? 'sorted' : ''}"
+                data-sort="${c.key}" style="text-align:${c.align === 'start' ? 'right' : 'center'};">
+                <span class="lib-th-label">${escapeHtml(c.label)}</span><span class="sort-arrow">${c.key === _libSort.key ? (_libSort.dir === 'asc' ? '▲' : '▼') : ''}</span>
+              </button>
+              ${i < cols.length - 1 ? `<span class="lib-col-resize" data-resize="${c.key}" title="اسحب لتغيير عرض العمود"></span>` : ''}
+            </div>`).join('')}
         </div>
         <div class="lib-scroll" id="libScroll"></div>
       </div>
@@ -1144,13 +1180,35 @@ function renderLibraryTable(root) {
   });
 
   root.querySelector('#libHead').addEventListener('click', (e) => {
+    if (e.target.closest('.lib-col-resize')) return; // ignore clicks on resizer
     const th = e.target.closest('.lib-th[data-sort]');
     if (!th) return;
     const key = th.dataset.sort;
+    const descDefault = new Set(['price', 'availableCopies', 'volumes', 'createdAt']);
     if (_libSort.key === key) _libSort.dir = _libSort.dir === 'asc' ? 'desc' : 'asc';
-    else { _libSort.key = key; _libSort.dir = (key === 'price' || key === 'availableCopies' || key === 'volumes') ? 'desc' : 'asc'; }
+    else { _libSort.key = key; _libSort.dir = descDefault.has(key) ? 'desc' : 'asc'; }
     renderLibraryTable(root);
   });
+
+  // Column resizing: drag the divider between two headers to set an explicit
+  // pixel width for the column on its right (in RTL, the start-side column).
+  setupColumnResize(root);
+
+  // Rebuild when the viewport crosses a breakpoint so the visible column set
+  // (and the grid template) stays correct. Guarded so we only redraw on an
+  // actual column-set change, not every resize pixel.
+  if (_libResizeHandler) window.removeEventListener('resize', _libResizeHandler);
+  _libVisibleCount = visibleLibColumns().length;
+  _libResizeHandler = () => {
+    if (currentRoute !== 'library') return;
+    const n = visibleLibColumns().length;
+    if (n !== _libVisibleCount) {
+      _libVisibleCount = n;
+      const host = document.querySelector('#viewRoot') || root;
+      renderLibraryTable(host);
+    }
+  };
+  window.addEventListener('resize', _libResizeHandler);
 
   const applyFilters = () => {
     if (_libDebounce) clearTimeout(_libDebounce);
@@ -1184,6 +1242,61 @@ function bookHasLoanState(book, state) {
     if (state === 'duesoon' && !RaffBook.isOverdue(l, 30) && RaffBook.isDueSoon(l, 7)) return true;
   }
   return false;
+}
+
+/**
+ * Enables drag-to-resize on the column dividers. Dragging a divider sets an
+ * explicit pixel width for the column it belongs to; the grid template then
+ * uses that width instead of the flexible fr track. Double-click resets it.
+ */
+function setupColumnResize(root) {
+  const head = root.querySelector('#libHead');
+  if (!head) return;
+
+  head.querySelectorAll('.lib-col-resize').forEach((handle) => {
+    const key = handle.dataset.resize;
+    const col = LIBRARY_COLUMNS.find((c) => c.key === key);
+    const minW = (col && col.min) || 60;
+
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const wrap = handle.closest('.lib-th-wrap');
+      const startX = e.clientX;
+      const startW = wrap.getBoundingClientRect().width;
+      document.body.classList.add('col-resizing');
+
+      const onMove = (ev) => {
+        // RTL: dragging left grows the column, so invert the delta.
+        const delta = startX - ev.clientX;
+        const next = Math.max(minW, Math.round(startW + delta));
+        _libColWidths[key] = next;
+        applyLibGridTemplate(root);
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        document.body.classList.remove('col-resizing');
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+
+    // Double-click a divider to reset that column to automatic width.
+    handle.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      delete _libColWidths[key];
+      applyLibGridTemplate(root);
+    });
+  });
+}
+
+/** Recomputes the CSS grid template from current widths without a full re-render. */
+function applyLibGridTemplate(root) {
+  const table = root.querySelector('.lib-table');
+  if (!table) return;
+  table.style.setProperty('--lib-cols', libGridTemplate());
 }
 
 function updateLibraryResults() {
@@ -1221,6 +1334,14 @@ function updateLibraryResults() {
   }
 }
 
+function formatDateShort(iso) {
+  const t = Date.parse(iso);
+  if (!t) return '—';
+  const d = new Date(t);
+  // Compact Gregorian date, e.g. 2026/07/12
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function renderLibraryRow(book) {
   const status = RaffBook.bookStatus(book);
   const statusCls = status === RaffBook.STATUS_AVAILABLE ? 'st-avail'
@@ -1230,20 +1351,25 @@ function renderLibraryRow(book) {
   const price = typeof book.price === 'number' ? formatPrice(book.price) : '—';
   const spine = spineColorFor(book.category || book.author);
 
-  const cell = (c, content) => `<div class="lib-td ${c.hide ? 'hide-' + c.hide : ''} ${c.ltr ? 'ltr' : ''}" style="text-align:${c.align === 'start' ? 'right' : 'center'};">${content}</div>`;
+  const content = {
+    title: `<span class="lib-title" title="${escapeHtml(book.title)}">${escapeHtml(book.title) || 'بدون عنوان'}</span>`,
+    author: escapeHtml(book.author) || '—',
+    publisher: escapeHtml(book.publisher) || '—',
+    category: escapeHtml(book.category) || '—',
+    publishYear: escapeHtml(book.publishYear) || '—',
+    createdAt: `<span class="lib-date">${formatDateShort(book.createdAt)}</span>`,
+    volumes: book.volumes || 1,
+    price: price,
+    availableCopies: `<span class="${avail === 0 ? 'num-warn' : 'num-ok'}">${avail}</span><span class="lib-total">/${total}</span>`,
+    status: `<span class="lib-status ${statusCls}">${status}</span>`,
+    referenceNumber: escapeHtml(book.referenceNumber),
+  };
 
-  return `<div class="lib-row" data-id="${book.id}" role="button" tabindex="0" style="--spine:${spine};">
-    ${cell(LIBRARY_COLUMNS[0], `<span class="lib-title" title="${escapeHtml(book.title)}">${escapeHtml(book.title) || 'بدون عنوان'}</span>`)}
-    ${cell(LIBRARY_COLUMNS[1], escapeHtml(book.author) || '—')}
-    ${cell(LIBRARY_COLUMNS[2], escapeHtml(book.publisher) || '—')}
-    ${cell(LIBRARY_COLUMNS[3], escapeHtml(book.category) || '—')}
-    ${cell(LIBRARY_COLUMNS[4], escapeHtml(book.publishYear) || '—')}
-    ${cell(LIBRARY_COLUMNS[5], book.volumes || 1)}
-    ${cell(LIBRARY_COLUMNS[6], price)}
-    ${cell(LIBRARY_COLUMNS[7], `<span class="${avail === 0 ? 'num-warn' : 'num-ok'}">${avail}</span><span class="lib-total">/${total}</span>`)}
-    ${cell(LIBRARY_COLUMNS[8], `<span class="lib-status ${statusCls}">${status}</span>`)}
-    ${cell(LIBRARY_COLUMNS[9], escapeHtml(book.referenceNumber))}
-  </div>`;
+  const cells = visibleLibColumns().map((c) =>
+    `<div class="lib-td ${c.ltr ? 'ltr' : ''}" style="text-align:${c.align === 'start' ? 'right' : 'center'};">${content[c.key]}</div>`
+  ).join('');
+
+  return `<div class="lib-row" data-id="${book.id}" role="button" tabindex="0" style="--spine:${spine};">${cells}</div>`;
 }
 
 /* =========================================================
@@ -1277,7 +1403,8 @@ function renderScanView(root) {
         </div>
         <div class="scan-print-row">
           <button class="btn btn-outline btn-sm" id="printAllLabelsBtn">${icon('printer', 15)} طباعة ملصقات كل الكتب</button>
-          <button class="btn btn-outline btn-sm" id="printFilteredBtn">${icon('printer', 15)} طباعة حسب رف/مجال…</button>
+          <button class="btn btn-outline btn-sm" id="pdfAllLabelsBtn">${icon('download', 15)} حفظ كل الملصقات PDF</button>
+          <button class="btn btn-outline btn-sm" id="printFilteredBtn">${icon('printer', 15)} طباعة/حفظ حسب رف أو نطاق…</button>
         </div>
       </div>
 
@@ -1303,6 +1430,9 @@ function renderScanView(root) {
 
   root.querySelector('#printAllLabelsBtn').addEventListener('click', () => {
     printBarcodeLabels(RAFF_STATE.books, 'كل الكتب');
+  });
+  root.querySelector('#pdfAllLabelsBtn').addEventListener('click', () => {
+    saveBarcodeLabelsPdf(RAFF_STATE.books, 'كل الكتب');
   });
   root.querySelector('#printFilteredBtn').addEventListener('click', showLabelFilterModal);
 
@@ -1376,7 +1506,8 @@ function scannedBookSheetHtml(book) {
 
       <div class="sheet-actions">
         <button class="btn btn-primary btn-sm" id="sheetDetailsBtn">${icon('book', 15)} فتح التفاصيل والإعارة</button>
-        <button class="btn btn-outline btn-sm" id="sheetPrintLabelBtn">${icon('printer', 15)} طباعة ملصق الباركود</button>
+        <button class="btn btn-outline btn-sm" id="sheetPrintLabelBtn">${icon('printer', 15)} طباعة الملصق</button>
+        <button class="btn btn-outline btn-sm" id="sheetPdfLabelBtn">${icon('download', 15)} حفظ PDF</button>
         <button class="btn btn-outline btn-sm" id="sheetCopyRefBtn">${icon('hash', 15)} نسخ الرقم</button>
       </div>
     </div>`;
@@ -1385,6 +1516,7 @@ function scannedBookSheetHtml(book) {
 function wireScannedBookSheet(root, book) {
   root.querySelector('#sheetDetailsBtn')?.addEventListener('click', () => showBookDetails(book.id));
   root.querySelector('#sheetPrintLabelBtn')?.addEventListener('click', () => printBarcodeLabels([book], book.title));
+  root.querySelector('#sheetPdfLabelBtn')?.addEventListener('click', () => saveBarcodeLabelsPdf([book], book.title));
   root.querySelector('#sheetCopyRefBtn')?.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(book.referenceNumber);
@@ -1410,107 +1542,153 @@ function showScannedBook(bookId) {
  * isolated HTML document (no app chrome) so what prints is exactly the labels,
  * sized for standard adhesive label sheets.
  */
-function printBarcodeLabels(books, titleLabel) {
+/**
+ * Builds the standalone HTML document for a sheet of barcode labels, honoring
+ * the institution branding and label options from settings. Shared by both the
+ * print path and the save-as-PDF path so they always produce identical output.
+ * Returns null (after a toast) if no book has an encodable reference.
+ */
+function buildLabelsHtml(books, titleLabel) {
   const printable = books.filter((b) => typeof RaffBarcode !== 'undefined' && RaffBarcode.canEncode(b.referenceNumber));
   if (!printable.length) {
     toast('لا توجد أرقام مرجعية صالحة للطباعة', 'error');
-    return;
+    return null;
   }
 
   const s = RAFF_STATE.settings || {};
-  const columns = (s.labelColumns >= 1 && s.labelColumns <= 5) ? s.labelColumns : 3;
+  const columns = (s.labelColumns >= 1 && s.labelColumns <= 5) ? s.labelColumns : 4;
+  const size = s.labelSize === 'medium' ? 'medium' : 'small';
   const showPrice = s.labelShowPrice !== false;
   const showShelf = s.labelShowShelf !== false;
   const showMicro = s.labelShowMicrotext !== false;
   const institution = (s.institutionName || '').trim();
   const logo = s.logo || '';
 
-  // Barcode density scales gently with column count so labels stay scannable.
-  const moduleWidth = columns >= 4 ? 1.3 : columns === 3 ? 1.6 : 2;
-  const barHeight = columns >= 4 ? 34 : 40;
+  // ---- Precise A4 geometry (mm) ----
+  // A4 is 210mm wide. With an 8mm page margin each side, the usable width is
+  // 194mm. Labels are laid out in a fixed grid with a small gutter, so each
+  // label gets an exact millimetre width — essential for sheets that line up
+  // with adhesive label stock and for a predictable, professional result.
+  const PAGE_W = 210, MARGIN = 8, GUTTER = 3;
+  const usable = PAGE_W - MARGIN * 2;
+  const labelW = (usable - GUTTER * (columns - 1)) / columns;
+  // Compact by default so the sticker sits on the spine/back cover without
+  // covering the book's own printed data. "medium" is a touch taller.
+  const labelH = size === 'medium' ? 34 : 27;
+
+  // Barcode module width derives from the label width so the bars always fill
+  // the label neatly regardless of column count, staying crisp and scannable.
+  const innerW = labelW - 4;                    // minus label padding
+  const moduleWidth = Math.max(0.34, Math.min(0.62, (innerW / 68)));
+  const barHeight = size === 'medium' ? 12 : 9; // mm-ish; scaled by SVG
 
   const labels = printable.map((b) => {
     const svg = RaffBarcode.toSVG(b.referenceNumber, {
-      moduleWidth: moduleWidth, height: barHeight, textSize: 10, margin: 4,
-      color: '#111111', background: '#ffffff',
+      moduleWidth: moduleWidth, height: barHeight * 3, textSize: 0, margin: 1,
+      color: '#111111', background: '#ffffff', showText: false,
     });
-    const title = escapeHtml((b.title || 'بدون عنوان').slice(0, 48));
+    const title = escapeHtml((b.title || 'بدون عنوان').slice(0, 42));
     const priceStr = (showPrice && typeof b.price === 'number') ? formatPrice(b.price) : '';
 
     // Microtext: a faint, very small line carrying quick book facts. It is
     // deliberately low-contrast — legible up close, unobtrusive from afar.
     const micro = showMicro ? [
       b.author, b.publisher, b.publishYear,
-      b.category, (b.volumes > 1 ? `${b.volumes} أجزاء` : ''), b.condition,
+      b.category, (b.volumes > 1 ? `${b.volumes} أجزاء` : ''),
     ].filter(Boolean).map(escapeHtml).join(' • ') : '';
+
+    // Professional brand strip: logo + academy name, sized to sit cleanly at
+    // the top of each label without crowding the barcode.
+    const brand = (institution || logo) ? `
+      <div class="l-brand">
+        ${logo ? `<img src="${logo}" class="l-logo" alt="">` : ''}
+        ${institution ? `<span class="l-inst">${escapeHtml(institution)}</span>` : ''}
+      </div>` : '';
 
     return `
       <div class="label">
-        ${institution || logo ? `<div class="label-brand">
-          ${logo ? `<img src="${logo}" class="label-logo" alt="">` : ''}
-          ${institution ? `<span class="label-inst">${escapeHtml(institution)}</span>` : ''}
+        ${brand}
+        <div class="l-title">${title}</div>
+        <div class="l-barcode">${svg}</div>
+        <div class="l-ref">${escapeHtml(b.referenceNumber)}</div>
+        ${(showShelf && b.shelf) || priceStr ? `<div class="l-meta">
+          ${showShelf && b.shelf ? `<span>رف ${escapeHtml(b.shelf)}</span>` : ''}
+          ${priceStr ? `<span class="l-price">${priceStr}</span>` : ''}
         </div>` : ''}
-        <div class="label-title">${title}</div>
-        <div class="label-barcode">${svg}</div>
-        <div class="label-meta">
-          <span class="label-ref">${escapeHtml(b.referenceNumber)}</span>
-          ${showShelf && b.shelf ? `<span class="label-shelf">رف ${escapeHtml(b.shelf)}</span>` : ''}
-          ${priceStr ? `<span class="label-price">${priceStr}</span>` : ''}
-        </div>
-        ${micro ? `<div class="label-micro">${micro}</div>` : ''}
+        ${micro ? `<div class="l-micro">${micro}</div>` : ''}
       </div>`;
   }).join('');
 
-  const headBrand = logo
-    ? `<img src="${logo}" class="head-logo" alt="">`
-    : '';
+  const headBrand = logo ? `<img src="${logo}" class="head-logo" alt="">` : '';
 
-  const doc = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8">
+  const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8">
     <title>ملصقات الباركود — ${escapeHtml(titleLabel || '')}</title>
     <style>
-      * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      body { margin: 0; font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; padding: 10mm; color: #1a1a1a; }
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; }
+      @page { size: A4; margin: ${MARGIN}mm; }
+      body { font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; color: #1a1a1a; }
       .sheet-head {
         display: flex; align-items: center; justify-content: center; gap: 4mm;
-        text-align: center; margin-bottom: 6mm; padding-bottom: 4mm;
-        border-bottom: 2px solid #b0894b;
+        text-align: center; margin-bottom: 5mm; padding-bottom: 3mm;
+        border-bottom: 1.5pt solid #b0894b;
       }
-      .head-logo { max-height: 14mm; max-width: 30mm; object-fit: contain; }
-      .head-text h1 { font-size: 15pt; margin: 0 0 1mm; color: #3e2c1c; }
-      .head-text p { font-size: 8.5pt; color: #777; margin: 0; }
-      .labels { display: grid; grid-template-columns: repeat(${columns}, 1fr); gap: 4mm; }
+      .head-logo { max-height: 12mm; max-width: 26mm; object-fit: contain; }
+      .head-text h1 { font-size: 13pt; margin-bottom: 0.5mm; color: #3e2c1c; }
+      .head-text p { font-size: 8pt; color: #888; }
+
+      .labels {
+        display: grid;
+        grid-template-columns: repeat(${columns}, ${labelW.toFixed(2)}mm);
+        gap: ${GUTTER}mm;
+        justify-content: center;
+      }
       .label {
-        border: 1.2pt solid #b0894b; border-radius: 2.5mm; padding: 2.5mm 2mm 2mm;
-        text-align: center; page-break-inside: avoid; break-inside: avoid;
-        display: flex; flex-direction: column; align-items: center; gap: 1mm;
+        width: ${labelW.toFixed(2)}mm; height: ${labelH}mm;
+        border: 0.8pt solid #b0894b; border-radius: 1.6mm;
+        padding: 1.4mm 1.4mm 1.2mm;
+        page-break-inside: avoid; break-inside: avoid;
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; gap: 0.7mm; text-align: center;
         background: #fff; position: relative; overflow: hidden;
       }
+      /* Slim accent bar for a finished, professional look. */
       .label::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1.5mm;
-        background: #b0894b;
+        content: ''; position: absolute; top: 0; inset-inline: 0; height: 1mm; background: #b0894b;
       }
-      .label-brand { display: flex; align-items: center; gap: 1.5mm; margin-top: 1mm; }
-      .label-logo { max-height: 5mm; max-width: 12mm; object-fit: contain; }
-      .label-inst { font-size: 6.5pt; font-weight: 700; color: #8b6f3a; letter-spacing: 0.2pt; }
-      .label-title { font-size: 8.5pt; font-weight: 700; line-height: 1.25; min-height: 20px;
-        display: flex; align-items: center; }
-      .label-barcode { width: 100%; }
-      .label-barcode svg { max-width: 100%; height: auto; }
-      .label-meta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
-        gap: 1.5mm; margin-top: 0.5mm; }
-      .label-ref { font-size: 8pt; font-weight: 700; direction: ltr; font-family: monospace; }
-      .label-shelf, .label-price {
-        font-size: 6.5pt; font-weight: 700; padding: 0.3mm 1.5mm; border-radius: 1mm;
+      /* Every child sizes to its own content — nothing reserves space. The
+         barcode is the one flexible element, so it absorbs whatever vertical
+         room is freed when there's no logo, name, title, or meta line, and
+         shrinks gracefully when all of them are present. */
+      .label > * { flex: 0 0 auto; width: 100%; }
+      .l-brand {
+        display: flex; align-items: center; justify-content: center; gap: 1mm;
+      }
+      .l-logo { max-height: 5mm; max-width: 10mm; object-fit: contain; }
+      .l-inst {
+        font-size: 5.6pt; font-weight: 800; color: #6b5518; letter-spacing: 0.1pt;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+      }
+      .l-title {
+        font-size: 6.2pt; font-weight: 700; line-height: 1.15; color: #222;
+        overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      }
+      .l-barcode {
+        flex: 1 1 auto; min-height: 6mm;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .l-barcode svg { max-width: 100%; height: 100%; max-height: 14mm; width: auto; }
+      .l-ref { font-size: 7pt; font-weight: 700; direction: ltr; font-family: monospace; letter-spacing: 0.3pt; }
+      .l-meta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1mm; }
+      .l-meta span {
+        font-size: 5.2pt; font-weight: 700; padding: 0.2mm 1mm; border-radius: 0.8mm;
         background: #f3ead5; color: #6b5518;
       }
-      .label-price { direction: ltr; }
+      .l-price { direction: ltr; }
       /* Microtext: intentionally faint and tiny. */
-      .label-micro {
-        font-size: 4.6pt; line-height: 1.3; color: #c9c1ad; margin-top: 0.8mm;
-        max-width: 100%; overflow: hidden; letter-spacing: 0.1pt;
-        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      .l-micro {
+        font-size: 3.9pt; line-height: 1.2; color: #cbc4b0; letter-spacing: 0.05pt;
+        overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
       }
-      @media print { @page { margin: 8mm; } }
     </style></head><body>
     <div class="sheet-head">
       ${headBrand}
@@ -1521,6 +1699,13 @@ function printBarcodeLabels(books, titleLabel) {
     </div>
     <div class="labels">${labels}</div>
     </body></html>`;
+
+  return { html, count: printable.length };
+}
+
+function printBarcodeLabels(books, titleLabel) {
+  const built = buildLabelsHtml(books, titleLabel);
+  if (!built) return;
 
   // Render in a hidden iframe so the OS print dialog shows only the labels.
   // Printing is triggered from here (the parent), not an inline script, so it
@@ -1533,7 +1718,7 @@ function printBarcodeLabels(books, titleLabel) {
   document.body.appendChild(frame);
   const fdoc = frame.contentWindow.document;
   fdoc.open();
-  fdoc.write(doc);
+  fdoc.write(built.html);
   fdoc.close();
   // Wait for the barcodes (inline SVG) and logo to lay out, then print.
   setTimeout(() => {
@@ -1544,7 +1729,26 @@ function printBarcodeLabels(books, titleLabel) {
   }, 400);
   // Clean up after printing.
   setTimeout(() => { try { document.body.removeChild(frame); } catch (_) {} }, 60000);
-  toast(`جارٍ تجهيز ${printable.length} ملصقاً للطباعة…`, 'success', 2000);
+  toast(`جارٍ تجهيز ${built.count} ملصقاً للطباعة…`, 'success', 2000);
+}
+
+/**
+ * Saves the same label sheet directly as a PDF file (no print dialog). The
+ * HTML is rendered to a real PDF in the main process via printToPDF, then
+ * written wherever the user chooses in the save dialog.
+ */
+async function saveBarcodeLabelsPdf(books, titleLabel) {
+  const built = buildLabelsHtml(books, titleLabel);
+  if (!built) return;
+  toast(`جارٍ تجهيز ${built.count} ملصقاً كملف PDF…`, 'success', 2000);
+  try {
+    const res = await window.raff.saveLabelsPdf(built.html, titleLabel || 'ملصقات');
+    if (res && res.ok) toast('تم حفظ ملف PDF بنجاح', 'success');
+    else if (res && res.canceled) { /* user cancelled — say nothing */ }
+    else toast((res && res.error) || 'تعذّر حفظ ملف PDF', 'error');
+  } catch (_) {
+    toast('تعذّر حفظ ملف PDF', 'error');
+  }
 }
 
 /** Lets the user print labels for a subset (by shelf, category, or series). */
@@ -1553,20 +1757,26 @@ function showLabelFilterModal() {
   const opt = (arr) => arr.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
   const html = `
     <div class="modal-header">
-      <h3 class="modal-title">${icon('printer')} طباعة ملصقات محددة</h3>
+      <h3 class="modal-title">${icon('printer')} طباعة / حفظ ملصقات محددة</h3>
       <button class="btn btn-ghost btn-icon" id="lblClose" aria-label="إغلاق">${icon('x')}</button>
     </div>
     <div class="modal-body">
-      <p class="form-note" style="display:flex;">${icon('info', 13)} اختر معياراً واحداً لطباعة ملصقات مجموعة من الكتب.</p>
+      <div class="label-dest">
+        <span class="label-dest-label">الوجهة:</span>
+        <div class="chip-toggle" id="lblDest">
+          <button data-dest="print" class="active">${icon('printer', 13)} طباعة</button>
+          <button data-dest="pdf">${icon('download', 13)} حفظ PDF</button>
+        </div>
+      </div>
 
       <div class="label-range-box">
         <div class="label-range-title">${icon('hash', 14)} حسب نطاق الرقم المرجعي</div>
         <div class="label-range-row">
           <label class="label-range-field"><span>من</span><input type="text" id="lblFrom" placeholder="raf-0001" dir="ltr"></label>
           <label class="label-range-field"><span>إلى</span><input type="text" id="lblTo" placeholder="raf-0100" dir="ltr"></label>
-          <button class="btn btn-primary btn-sm" id="lblPrintRange">${icon('printer', 15)} طباعة النطاق</button>
+          <button class="btn btn-primary btn-sm" id="lblDoRange">${icon('check', 15)} تنفيذ النطاق</button>
         </div>
-        <span class="label-range-hint">مثال: من <b>raf-0001</b> إلى <b>raf-0100</b> يطبع أول مئة كتاب.</span>
+        <span class="label-range-hint">مثال: من <b>raf-0001</b> إلى <b>raf-0100</b> يشمل أول مئة كتاب.</span>
       </div>
 
       <div class="label-or">أو حسب تصنيف</div>
@@ -1584,7 +1794,7 @@ function showLabelFilterModal() {
         <select id="lblSeries"><option value="">— اختر سلسلة —</option>${opt(meta.series || [])}</select>
       </div>
       <div class="form-actions" style="position:static;margin:14px 0 0;padding:14px 0 0;border-top:1px solid var(--parchment-200);border-radius:0;">
-        <button class="btn btn-primary btn-sm" id="lblPrint">${icon('printer', 15)} طباعة حسب التصنيف</button>
+        <button class="btn btn-primary btn-sm" id="lblDoFilter">${icon('check', 15)} تنفيذ حسب التصنيف</button>
       </div>
     </div>`;
 
@@ -1592,8 +1802,22 @@ function showLabelFilterModal() {
     onMount: (overlay) => {
       overlay.querySelector('#lblClose').addEventListener('click', closeModal);
 
-      // Print by reference-number range.
-      overlay.querySelector('#lblPrintRange').addEventListener('click', () => {
+      // Shared destination: print to the OS dialog, or save straight to PDF.
+      let dest = 'print';
+      overlay.querySelector('#lblDest').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-dest]');
+        if (!btn) return;
+        dest = btn.dataset.dest;
+        overlay.querySelectorAll('#lblDest button').forEach((x) => x.classList.toggle('active', x === btn));
+      });
+      const emit = (books, label) => {
+        closeModal();
+        if (dest === 'pdf') saveBarcodeLabelsPdf(books, label);
+        else printBarcodeLabels(books, label);
+      };
+
+      // By reference-number range.
+      overlay.querySelector('#lblDoRange').addEventListener('click', () => {
         const from = overlay.querySelector('#lblFrom').value.trim();
         const to = overlay.querySelector('#lblTo').value.trim();
         if (!from || !to) { toast('أدخل بداية ونهاية النطاق', 'error'); return; }
@@ -1605,11 +1829,10 @@ function showLabelFilterModal() {
           .filter((bk) => { const n = num(bk.referenceNumber); return n !== null && n >= lo && n <= hi; })
           .sort((x, y) => num(x.referenceNumber) - num(y.referenceNumber));
         if (!books.length) { toast('لا توجد كتب في هذا النطاق', 'error'); return; }
-        closeModal();
-        printBarcodeLabels(books, `النطاق ${lo}–${hi}`);
+        emit(books, `النطاق ${lo}–${hi}`);
       });
 
-      overlay.querySelector('#lblPrint').addEventListener('click', () => {
+      overlay.querySelector('#lblDoFilter').addEventListener('click', () => {
         const shelf = overlay.querySelector('#lblShelf').value;
         const cat = overlay.querySelector('#lblCategory').value;
         const series = overlay.querySelector('#lblSeries').value;
@@ -1620,8 +1843,7 @@ function showLabelFilterModal() {
         if (series) { books = books.filter((b) => b.series === series); label.push('السلسلة: ' + series); }
         if (!label.length) { toast('اختر معياراً واحداً على الأقل', 'error'); return; }
         if (!books.length) { toast('لا توجد كتب مطابقة', 'error'); return; }
-        closeModal();
-        printBarcodeLabels(books, label.join(' · '));
+        emit(books, label.join(' · '));
       });
     },
   });
@@ -1926,7 +2148,8 @@ function renderSettings(root) {
       <button class="btn btn-outline btn-sm" id="${id}">${icon('download')} تصدير</button>
     </div>`;
 
-  const cols = (st.labelColumns >= 1 && st.labelColumns <= 5) ? st.labelColumns : 3;
+  const cols = (st.labelColumns >= 1 && st.labelColumns <= 5) ? st.labelColumns : 4;
+  const lblSize = st.labelSize === 'medium' ? 'medium' : 'small';
 
   root.innerHTML = `
     <div class="settings-grid">
@@ -1960,11 +2183,19 @@ function renderSettings(root) {
 
         <div class="label-opts">
           <div class="label-opt-cols">
-            <label>عدد الأعمدة في الورقة</label>
+            <label>عدد الأعمدة في ورقة A4</label>
             <div class="chip-toggle" id="setCols">
-              ${[2, 3, 4].map((n) => `<button data-cols="${n}" class="${n === cols ? 'active' : ''}">${n}</button>`).join('')}
+              ${[3, 4, 5].map((n) => `<button data-cols="${n}" class="${n === cols ? 'active' : ''}">${n}</button>`).join('')}
             </div>
           </div>
+          <div class="label-opt-cols">
+            <label>حجم الملصق</label>
+            <div class="chip-toggle" id="setSize">
+              <button data-size="small" class="${lblSize === 'small' ? 'active' : ''}">صغير</button>
+              <button data-size="medium" class="${lblSize === 'medium' ? 'active' : ''}">متوسط</button>
+            </div>
+          </div>
+          <span class="hint">الملصق الصغير (4 أعمدة) مثالي للصقه خلف الكتاب دون حجب بياناته. الورق A4.</span>
           <label class="toggle-row"><input type="checkbox" id="setPrice" ${st.labelShowPrice !== false ? 'checked' : ''}> إظهار السعر على الملصق</label>
           <label class="toggle-row"><input type="checkbox" id="setShelf" ${st.labelShowShelf !== false ? 'checked' : ''}> إظهار الرف على الملصق</label>
           <label class="toggle-row"><input type="checkbox" id="setMicro" ${st.labelShowMicrotext !== false ? 'checked' : ''}> معلومات دقيقة خفية (المؤلف والناشر…)</label>
@@ -2101,6 +2332,12 @@ function renderSettings(root) {
     if (!btn) return;
     root.querySelectorAll('#setCols button').forEach((b) => b.classList.toggle('active', b === btn));
     saveSetting({ labelColumns: Number(btn.dataset.cols) });
+  });
+  root.querySelector('#setSize').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-size]');
+    if (!btn) return;
+    root.querySelectorAll('#setSize button').forEach((b) => b.classList.toggle('active', b === btn));
+    saveSetting({ labelSize: btn.dataset.size });
   });
   root.querySelector('#setPrice').addEventListener('change', (e) => saveSetting({ labelShowPrice: e.target.checked }));
   root.querySelector('#setShelf').addEventListener('change', (e) => saveSetting({ labelShowShelf: e.target.checked }));
