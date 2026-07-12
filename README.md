@@ -11,10 +11,10 @@
 
 <h3>نظام عربي لفهرسة وإدارة المكتبات</h3>
 
-<p><em>أضف الكتاب مرّة… ثم اعثر عليه في ثوانٍ.</em></p>
+<p><em>أضف الكتاب مرّة… امسح باركوده… واعثر عليه في ثوانٍ.</em></p>
 
 <p>
-  <img src="https://img.shields.io/badge/version-0.9.9-8B5E34?style=for-the-badge&labelColor=3E2C1C" alt="version">
+  <img src="https://img.shields.io/badge/version-1.0.0-2F855A?style=for-the-badge&labelColor=22543D" alt="version">
   <img src="https://img.shields.io/badge/platform-Windows-2B6CB0?style=for-the-badge&labelColor=1A365D" alt="platform">
   <img src="https://img.shields.io/badge/Electron-31-44566C?style=for-the-badge&logo=electron&logoColor=white&labelColor=2D3748" alt="Electron">
   <img src="https://img.shields.io/badge/license-MIT-2F855A?style=for-the-badge&labelColor=22543D" alt="license">
@@ -24,11 +24,11 @@
   <img src="https://img.shields.io/badge/Offline_First-✓-4B6350?style=flat-square&labelColor=2F3E33" alt="offline">
   <img src="https://img.shields.io/badge/Arabic_RTL_UI-✓-C19A2E?style=flat-square&labelColor=6B5518" alt="rtl">
   <img src="https://img.shields.io/badge/Barcode_·_Scanner-✓-8B5E34?style=flat-square&labelColor=3E2C1C" alt="barcode">
-  <img src="https://img.shields.io/badge/No_Ads_·_No_Tracking-✓-732E2E?style=flat-square&labelColor=451B1B" alt="privacy">
-  <img src="https://img.shields.io/badge/Bundled_Fonts-✓-44566C?style=flat-square&labelColor=2D3748" alt="fonts">
+  <img src="https://img.shields.io/badge/PDF_Labels-✓-732E2E?style=flat-square&labelColor=451B1B" alt="pdf labels">
+  <img src="https://img.shields.io/badge/No_Ads_·_No_Tracking-✓-4A5568?style=flat-square&labelColor=2D3748" alt="privacy">
 </p>
 
-<p dir="rtl"><sub>يعمل بلا إنترنت · واجهة عربية كاملة (RTL) · باركود ومسح ضوئي · بلا إعلانات ولا تتبّع · خطوط مدمجة</sub></p>
+<p dir="rtl"><sub>يعمل بلا إنترنت · واجهة عربية كاملة (RTL) · باركود ومسح ضوئي · ملصقات PDF بهوية المؤسسة · بلا إعلانات ولا تتبّع</sub></p>
 
 <br>
 
@@ -80,7 +80,23 @@
 
 ## ✦ المميزات
 
-> رحلة كتاب واحد في رَفّ: **يُسجَّل مرّة** ← يأخذ **رقمًا مرجعيًا وباركود** ← يُعار **كاملًا أو جزءًا** ← يُمسَح بالقارئ لعرض بياناته ← يظهر في **البحث واللوحة والتقارير** فورًا.
+> رحلة كتاب واحد في رَفّ: **يُسجَّل مرّة** ← يأخذ **رقمًا مرجعيًا وباركود** ← يُطبع له ملصق أو يُحفظ PDF ← يُعار **كاملًا أو جزءًا** ← يُمسَح بالقارئ لعرض بياناته ← يظهر في **البحث واللوحة والتقارير** فورًا.
+
+<br>
+
+<div align="center" dir="rtl">
+
+<table>
+<tr><td align="center" width="100%">
+
+**<img src="https://icongr.am/feather/gift.svg?size=48&color=b0894b" width="16" align="center" alt=""> الجديد في الإصدار 1.0.0**
+
+نظام باركود ومسح ضوئي متكامل · طباعة الملصقات أو حفظها **PDF** · ملصقات بهوية المؤسسة مضبوطة على **A4** · أعمدة السجل **قابلة لتغيير العرض** · الترتيب حسب **تاريخ الإضافة**
+
+</td></tr>
+</table>
+
+</div>
 
 <br>
 
@@ -98,7 +114,7 @@
 <table>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/zap.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>بحث فوري ذكي</b></td><td valign="middle">لا يتأثّر بالتشكيل أو التطويل، ويفهم اختلاف الحروف: أ، إ، آ، ا، ى، ي، ة، ه.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/target.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>البحث المتقدم</b></td><td valign="middle">يغطّي العنوان، المؤلف، دار النشر، الرقم المرجعي، التصنيف، <b>السلسلة، الرف، الكلمات المفتاحية</b>، والمستعير.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/grid.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>السجل الكامل</b></td><td valign="middle">جدول احترافي قابل للفرز بكل عمود (العنوان، المؤلف، السنة، السعر، الحالة…)، مع فلاتر: متاح، جزئي، معار، <b>متأخر</b>، و<b>يستحق قريبًا</b>، وتصفية بمدى سعري. يعرض النتائج على دفعات لأداء ثابت مهما كبرت المكتبة.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/grid.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>السجل الكامل</b></td><td valign="middle">جدول احترافي قابل للفرز بكل عمود (العنوان، المؤلف، السنة، السعر، الحالة، <b>تاريخ الإضافة</b>…)، مع <b>أعمدة قابلة لتغيير العرض بالسحب</b>، وفلاتر: متاح، جزئي، معار، <b>متأخر</b>، و<b>يستحق قريبًا</b>، وتصفية بمدى سعري. يعرض النتائج على دفعات لأداء ثابت مهما كبرت المكتبة.</td></tr>
 </table>
 
 ### <img src="https://icongr.am/feather/bookmark.svg?size=54&color=b0894b" width="18" align="center" alt=""> الأرقام المرجعية
@@ -114,8 +130,9 @@
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/bar-chart.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>توليد باركود</b></td><td valign="middle">باركود <b>Code 128</b> يُولَّد تلقائيًا من الرقم المرجعي لكل كتاب — بلا إنترنت، ويظهر فور الإضافة وفي صفحة المسح.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/maximize.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>قارئ آلي من أي شاشة</b></td><td valign="middle">قارئ الباركود USB يعمل تلقائيًا من أي مكان في البرنامج (يعمل كلوحة مفاتيح)، ويميّز المسح عن الكتابة اليدوية بذكاء.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/file-text.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>صفحة بيانات فورية</b></td><td valign="middle">بمجرد المسح تظهر <b>صفحة الكتاب كاملة</b>: العنوان، المؤلف، السعر، الرف، الأجزاء، الإتاحة، والإعارات المفتوحة.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/printer.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>طباعة ملصقات احترافية</b></td><td valign="middle">ملصق مفرد، أو ورقة لكل المكتبة، أو حسب رف/مجال/سلسلة، أو <b>حسب نطاق رقمي</b> (مثل raf-0001 إلى raf-0100).</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/award.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>هوية المؤسسة على الملصق</b></td><td valign="middle"><b>شعار واسم المكتبة</b> على كل ملصق، مع إطار أنيق، وعدد أعمدة قابل للضبط، ومعلومات دقيقة شبه خفية (microtext) عن الكتاب.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/printer.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>طباعة أو حفظ PDF</b></td><td valign="middle">اطبع الملصقات مباشرة أو <b>احفظها ملف PDF</b> — ملصق مفرد، أو ورقة لكل المكتبة، أو حسب رف/مجال/سلسلة، أو <b>حسب نطاق رقمي</b> (مثل raf-0001 إلى raf-0100).</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/award.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>هوية المؤسسة على الملصق</b></td><td valign="middle"><b>شعار واسم المكتبة</b> على كل ملصق بإطار أنيق، مع معلومات دقيقة شبه خفية (microtext). ويتكيّف التصميم تلقائيًا: إن لم يوجد شعار أو اسم، يكبر الباركود ليملأ المساحة بلا فراغ.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/layout.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>مضبوط على ورق A4</b></td><td valign="middle">أبعاد الملصق مضبوطة بالمليمتر على ورق <b>A4</b>، بحجم صغير مثالي للصقه خلف الكتاب دون حجب بياناته، وعدد أعمدة قابل للضبط (3/4/5).</td></tr>
 </table>
 
 ### <img src="https://icongr.am/feather/repeat.svg?size=54&color=b0894b" width="18" align="center" alt=""> نظام الإعارة
@@ -176,15 +193,13 @@
 <summary><b><img src="https://icongr.am/feather/lock.svg?size=45&color=b0894b" width="15" align="center" alt=""> التحقّق من سلامة الملف (SHA256)</b></summary>
 
 <br>
-استخدم قيمة SHA256 التالية للتحقق من أن الملف الذي حمّلته هو نفس الملف المنشور رسميًا:
 
-```text
-5ab2c423aa61fc7019fafdb4cd74b7d5786920434f1dff76f6275e41bd9b5820
-```
+بعد بناء نسخة **1.0.0**، احسب قيمة **SHA256** لملف الإصدار وضعها هنا لينشرها المستخدمون ويتحققوا بها من سلامة الملف. تتغيّر هذه القيمة مع كل إصدار جديد، لذا احرص على تحديثها قبل النشر.
+
 للتحقق على **Windows PowerShell**، افتح PowerShell داخل مجلد التحميل ونفّذ:
 
 ```powershell
-certutil -hashfile Raf_Portable_0.9.9.zip SHA256
+certutil -hashfile Raf_Portable_1.0.0.zip SHA256
 ```
 
 قارن الناتج بالقيمة المنشورة رسميًا لهذا الإصدار؛ يجب أن يتطابقا حرفًا بحرف.
