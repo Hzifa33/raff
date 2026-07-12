@@ -70,6 +70,7 @@ app.whenReady().then(() => {
   ipcMain.handle('lib:meta', () => store.getMeta());
   ipcMain.handle('lib:getSettings', () => store.getSettings());
   ipcMain.handle('lib:updateSettings', (_e, patch) => store.updateSettings(patch));
+  ipcMain.handle('lib:peekNextRef', () => store.peekNextReferenceNumber());
 
   // ---- IPC: Backup / restore ----
   ipcMain.handle('lib:exportJson', async () => {
@@ -125,6 +126,39 @@ app.whenReady().then(() => {
         printBackground: true,
         pageSize: 'A4',
         margins: { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 },
+      });
+      fs.writeFileSync(filePath, pdfBuffer);
+      return { ok: true, filePath };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    } finally {
+      printWin.destroy();
+      fs.unlink(tmpHtmlPath, () => {});
+    }
+  });
+
+  ipcMain.handle('lib:saveLabelsPdf', async (_e, html, titleLabel) => {
+    const safeName = (titleLabel || 'ملصقات').toString().replace(/[\\/:*?"<>|]/g, '_').slice(0, 60);
+    const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+      title: 'حفظ الملصقات كملف PDF',
+      defaultPath: `raff-labels-${safeName}-${new Date().toISOString().slice(0, 10)}.pdf`,
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+    });
+    if (canceled || !filePath) return { ok: false, canceled: true };
+
+    const tmpHtmlPath = path.join(app.getPath('temp'), `raff-labels-${Date.now()}.html`);
+    fs.writeFileSync(tmpHtmlPath, html, 'utf-8');
+
+    const printWin = new BrowserWindow({ show: false, webPreferences: { sandbox: false } });
+    try {
+      await printWin.loadFile(tmpHtmlPath);
+      // Give inline SVG barcodes and the logo a moment to lay out.
+      await new Promise((r) => setTimeout(r, 250));
+      const pdfBuffer = await printWin.webContents.printToPDF({
+        landscape: false,
+        printBackground: true,
+        pageSize: 'A4',
+        margins: { marginType: 'default' },
       });
       fs.writeFileSync(filePath, pdfBuffer);
       return { ok: true, filePath };

@@ -15,11 +15,13 @@ contextBridge.exposeInMainWorld('raff', {
   getMeta: () => ipcRenderer.invoke('lib:meta'),
   getSettings: () => ipcRenderer.invoke('lib:getSettings'),
   updateSettings: (patch) => ipcRenderer.invoke('lib:updateSettings', patch),
+  peekNextRef: () => ipcRenderer.invoke('lib:peekNextRef'),
 
   exportJson: () => ipcRenderer.invoke('lib:exportJson'),
   exportCsv: () => ipcRenderer.invoke('lib:exportCsv'),
   exportTxt: () => ipcRenderer.invoke('lib:exportTxt'),
   exportPdf: () => ipcRenderer.invoke('lib:exportPdf'),
+  saveLabelsPdf: (html, titleLabel) => ipcRenderer.invoke('lib:saveLabelsPdf', html, titleLabel),
   importJson: () => ipcRenderer.invoke('lib:importJson'),
   resetAll: () => ipcRenderer.invoke('lib:resetAll'),
   backup: () => ipcRenderer.invoke('lib:backup'),
