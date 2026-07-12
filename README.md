@@ -176,7 +176,7 @@
 <summary><b><img src="https://icongr.am/feather/lock.svg?size=45&color=b0894b" width="15" align="center" alt=""> التحقّق من سلامة الملف (SHA256)</b></summary>
 
 <br>
-استخدم قيمة **SHA256** التالية للتحقق من أن الملف الذي حمّلته هو نفس الملف المنشور رسميًا:
+استخدم قيمة SHA256 التالية للتحقق من أن الملف الذي حمّلته هو نفس الملف المنشور رسميًا:
 
 ```text
 5ab2c423aa61fc7019fafdb4cd74b7d5786920434f1dff76f6275e41bd9b5820
