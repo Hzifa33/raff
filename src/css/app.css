@@ -1140,16 +1140,30 @@ button.integrity-item:hover { border-color: var(--accent); }
   padding: 0 14px;
   flex: 0 0 auto;
 }
+.lib-th-wrap { position: relative; display: flex; align-items: stretch; min-width: 0; }
 .lib-th {
+  flex: 1 1 auto; min-width: 0;
   border: none; background: transparent;
   font-family: var(--font-body);
   font-size: 11.5px; font-weight: 700; color: var(--ink-500);
   padding: 10px 4px;
   display: flex; align-items: center; gap: 4px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .lib-th[style*="center"] { justify-content: center; }
-.sort-arrow { font-size: 9px; }
+.lib-th-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sort-arrow { font-size: 9px; flex-shrink: 0; }
+/* Draggable divider between columns. */
+.lib-col-resize {
+  position: absolute; inset-inline-start: -4px; top: 0; bottom: 0;
+  width: 8px; cursor: col-resize; z-index: 2;
+}
+.lib-col-resize::after {
+  content: ''; position: absolute; inset-inline-start: 3px; top: 20%; bottom: 20%;
+  width: 2px; background: transparent; border-radius: 2px; transition: background 0.12s var(--ease);
+}
+.lib-col-resize:hover::after { background: var(--accent); }
+body.col-resizing { cursor: col-resize; user-select: none; }
+body.col-resizing * { cursor: col-resize !important; }
 
 .lib-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; position: relative; }
 .lib-row {
@@ -1181,12 +1195,8 @@ button.integrity-item:hover { border-color: var(--accent); }
 .lib-status.st-partial { background: rgba(193,154,46,0.16); color: var(--brass-700); }
 .lib-status.st-full { background: rgba(115,46,46,0.12); color: var(--maroon-700); }
 
-@media (max-width: 1280px) {
-  .lib-th.hide-md, .lib-td.hide-md { display: none; }
-}
-@media (max-width: 1180px) {
-  .lib-th.hide-narrow, .lib-td.hide-narrow { display: none; }
-}
+/* Column visibility by viewport is handled in JS (visibleLibColumns) so that
+   the grid template and cells always match — no CSS display:none needed. */
 
 /* =========================================================
    Book details modal — two-column, no-scroll layout
@@ -1678,6 +1688,8 @@ kbd {
 .label-range-field input:focus { border-color: var(--accent); }
 .label-range-hint { display: block; font-size: 10.5px; color: var(--ink-300); margin-top: 8px; }
 .label-or { text-align: center; font-size: 11px; color: var(--ink-300); font-weight: 700; margin: 6px 0 12px; position: relative; }
+.label-dest { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.label-dest-label { font-size: 12.5px; font-weight: 700; color: var(--ink-500); }
 
 /* =========================================================
    Barcode scan view + book data sheet
