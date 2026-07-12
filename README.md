@@ -193,7 +193,7 @@
 رَفّ خفيف ولا يحتاج جهازًا قويًا؛ يعمل بسلاسة على أجهزة المكاتب العادية.
 
 <table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/monitor.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>نظام التشغيل</b></td><td valign="middle"><b>Windows 10</b> أو أحدث (64-بت). تتوفّر أيضًا نسخة <b>Linux</b> بصيغة AppImage.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/monitor.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>نظام التشغيل</b></td><td valign="middle"><b>Windows 10</b> أو أحدث (64-بت).</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/cpu.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>المعالج والذاكرة</b></td><td valign="middle">أي معالج 64-بت حديث، و<b>2 جيجابايت RAM</b> على الأقل (يُفضّل 4 جيجابايت للمكتبات الكبيرة).</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/hard-drive.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>مساحة القرص</b></td><td valign="middle">نحو <b>250 ميجابايت</b> للبرنامج، إضافة إلى مساحة صغيرة تنمو ببطء مع بيانات المكتبة والنسخ الاحتياطية.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/wifi-off.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>الإنترنت</b></td><td valign="middle"><b>غير مطلوب إطلاقًا.</b> كل الميزات — بما فيها توليد الباركود والطباعة — تعمل بلا اتصال.</td></tr>
@@ -209,7 +209,11 @@
 
 <br>
 
-بعد بناء نسخة **1.0.0**، احسب قيمة **SHA256** لملف الإصدار وضعها هنا لينشرها المستخدمون ويتحققوا بها من سلامة الملف. تتغيّر هذه القيمة مع كل إصدار جديد، لذا احرص على تحديثها قبل النشر.
+استخدم قيمة **SHA256** التالية للتحقق من أن الملف الذي حمّلته هو نفس الملف المنشور رسميًا:
+
+```text
+b4edfb2fff28e8afd994cca949ebd9ecf950d996c10217546401b1fd16ead5ca
+```
 
 للتحقق على **Windows PowerShell**، افتح PowerShell داخل مجلد التحميل ونفّذ:
 
