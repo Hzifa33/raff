@@ -1751,7 +1751,115 @@ async function saveBarcodeLabelsPdf(books, titleLabel) {
   }
 }
 
-/** Lets the user print labels for a subset (by shelf, category, or series). */
+/**
+ * Builds a clean, branded HTML document for a data table (borrowers, overdue
+ * loans, or a report category). columns = [{label, align}], rows = array of
+ * arrays of cell strings. Shared so every PDF export looks consistent.
+ */
+function buildTablePdfHtml({ title, subtitle, columns, rows }) {
+  const s = RAFF_STATE.settings || {};
+  const institution = (s.institutionName || '').trim();
+  const logo = s.logo || '';
+  const today = new Date().toLocaleDateString('ar-EG');
+
+  const thead = columns.map((c) =>
+    `<th style="text-align:${c.align === 'start' ? 'right' : 'center'};">${escapeHtml(c.label)}</th>`).join('');
+  const tbody = rows.map((r, i) => `<tr class="${r._overdue ? 'row-overdue' : ''}">
+    <td class="rnum">${i + 1}</td>
+    ${r.cells.map((cell, ci) =>
+      `<td style="text-align:${columns[ci].align === 'start' ? 'right' : 'center'};">${escapeHtml(String(cell == null ? '' : cell))}</td>`).join('')}
+  </tr>`).join('');
+
+  return `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8">
+    <title>${escapeHtml(title)}</title>
+    <style>
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; }
+      @page { size: A4 landscape; margin: 10mm; }
+      body { font-family: 'Cairo','Segoe UI',Tahoma,sans-serif; color: #1a1a1a; padding: 4mm; }
+      .head { display: flex; align-items: center; gap: 5mm; border-bottom: 2pt solid #b0894b; padding-bottom: 4mm; margin-bottom: 5mm; }
+      .head img { max-height: 14mm; max-width: 30mm; object-fit: contain; }
+      .head .ht { flex: 1; }
+      .head h1 { font-size: 15pt; color: #3e2c1c; margin-bottom: 1mm; }
+      .head .sub { font-size: 9pt; color: #777; }
+      .head .date { font-size: 8.5pt; color: #999; }
+      table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+      thead th { background: #f3ead5; color: #6b5518; font-weight: 800; padding: 2.4mm 2mm; border: 0.5pt solid #e0d4b8; white-space: nowrap; }
+      tbody td { padding: 2mm; border: 0.5pt solid #eadfc7; }
+      tbody tr:nth-child(even) { background: #faf6ec; }
+      .rnum { color: #b0894b; font-weight: 700; text-align: center; width: 8mm; }
+      .row-overdue { background: #fbeaea !important; }
+      .row-overdue td { color: #8a2f2f; font-weight: 600; }
+      .legend { margin-top: 4mm; font-size: 8pt; color: #999; }
+      .legend .od { display: inline-block; width: 3mm; height: 3mm; background: #fbeaea; border: 0.5pt solid #d99; vertical-align: middle; margin-inline-start: 2mm; }
+    </style></head><body>
+    <div class="head">
+      ${logo ? `<img src="${logo}" alt="">` : ''}
+      <div class="ht">
+        <h1>${institution ? escapeHtml(institution) : 'مكتبة رَفّ'}</h1>
+        <div class="sub">${escapeHtml(title)}${subtitle ? ' · ' + escapeHtml(subtitle) : ''}</div>
+      </div>
+      <div class="date">${escapeHtml(today)}</div>
+    </div>
+    <table>
+      <thead><tr><th class="rnum">#</th>${thead}</tr></thead>
+      <tbody>${tbody}</tbody>
+    </table>
+    ${rows.some((r) => r._overdue) ? '<div class="legend"><span class="od"></span> صف مظلّل = إعارة متأخرة</div>' : ''}
+    </body></html>`;
+}
+
+async function saveTablePdf(spec, fileHint) {
+  if (!spec.rows.length) { toast('لا توجد بيانات للتصدير', 'error'); return; }
+  toast('جارٍ تجهيز ملف PDF…', 'success', 1800);
+  try {
+    const html = buildTablePdfHtml(spec);
+    const res = await window.raff.saveTablePdf(html, fileHint || spec.title);
+    if (res && res.ok) toast('تم حفظ ملف PDF بنجاح', 'success');
+    else if (res && res.canceled) { /* silent */ }
+    else toast((res && res.error) || 'تعذّر حفظ ملف PDF', 'error');
+  } catch (_) {
+    toast('تعذّر حفظ ملف PDF', 'error');
+  }
+}
+
+/** Formats an ISO date as a short Gregorian date, or a dash. */
+function fmtLoanDate(iso) {
+  const t = Date.parse(iso);
+  return t ? new Date(t).toLocaleDateString('ar-EG') : '—';
+}
+
+/** Exports active borrowers (optionally overdue only) as a PDF. */
+async function exportBorrowersPdf({ overdueOnly = false } = {}) {
+  const loans = await window.raff.getActiveLoans({ overdueOnly });
+  if (!loans.length) {
+    toast(overdueOnly ? 'لا يوجد مستعيرون متأخرون' : 'لا توجد إعارات مفتوحة', 'error');
+    return;
+  }
+  const columns = [
+    { label: 'المستعير', align: 'start' },
+    { label: 'الكتاب', align: 'start' },
+    { label: 'الرقم المرجعي', align: 'center' },
+    { label: 'النطاق', align: 'center' },
+    { label: 'يوم الإعارة', align: 'center' },
+    { label: 'تاريخ الاستحقاق', align: 'center' },
+    { label: 'الحالة', align: 'center' },
+  ];
+  const rows = loans.map((l) => ({
+    _overdue: l.overdue,
+    cells: [
+      l.borrowerName || '—', l.title || '—', l.referenceNumber || '—', l.scope,
+      fmtLoanDate(l.borrowedAt), fmtLoanDate(l.dueAt),
+      l.overdue ? `متأخر ${l.overdueDays} يوم` : 'ضمن المدة',
+    ],
+  }));
+  await saveTablePdf({
+    title: overdueOnly ? 'المستعيرون المتأخرون' : 'المستعيرون والإعارات المفتوحة',
+    subtitle: `${loans.length} ${overdueOnly ? 'متأخر' : 'إعارة'}`,
+    columns, rows,
+  }, overdueOnly ? 'المتأخرون' : 'المستعيرون');
+}
+
+/** Lets the user print/save labels for a subset (by shelf, category, series, or range). */
 function showLabelFilterModal() {
   const meta = RAFF_STATE.meta;
   const opt = (arr) => arr.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
@@ -1964,7 +2072,13 @@ function renderReportsBody(body, root) {
     body.innerHTML = `
       <div class="report-summary">
         <span class="report-summary-title">${icon(dimDef.icon, 15)} ترتيب ${escapeHtml(dimDef.label)}</span>
-        <span class="report-summary-meta">${ranked.length} ${isBorrower ? 'مستعيراً' : 'قيمة'} · اضغط رأس أي عمود للترتيب</span>
+        <div class="report-summary-right">
+          <span class="report-summary-meta">${ranked.length} ${isBorrower ? 'مستعيراً' : 'قيمة'} · اضغط رأس أي عمود للترتيب</span>
+          ${isBorrower ? `
+            <button class="btn btn-outline btn-sm" id="expBorrowers">${icon('download', 14)} تصدير المستعيرين PDF</button>
+            <button class="btn btn-outline btn-sm" id="expOverdue">${icon('download', 14)} المتأخرون فقط</button>
+          ` : `<button class="btn btn-outline btn-sm" id="expRank">${icon('download', 14)} تصدير الترتيب PDF</button>`}
+        </div>
       </div>
       <div class="report-table-wrap">
         <table class="report-table">
@@ -1983,6 +2097,25 @@ function renderReportsBody(body, root) {
           </tbody>
         </table>
       </div>`;
+
+    if (isBorrower) {
+      body.querySelector('#expBorrowers').addEventListener('click', () => exportBorrowersPdf({ overdueOnly: false }));
+      body.querySelector('#expOverdue').addEventListener('click', () => exportBorrowersPdf({ overdueOnly: true }));
+    } else {
+      body.querySelector('#expRank').addEventListener('click', () => {
+        const columns = [{ label: '#', align: 'center' }, ...cols.map((c) => ({ label: c.label, align: c.align }))];
+        // Build rows using the same formatter, stripped of HTML.
+        const strip = (html) => html.replace(/<[^>]+>/g, '');
+        const rows = ranked.map((r, i) => ({
+          cells: [String(i + 1), ...cols.map((c) => strip(fmt(r, c)))],
+        }));
+        saveTablePdf({
+          title: `ترتيب ${dimDef.label}`,
+          subtitle: `${ranked.length} قيمة`,
+          columns, rows,
+        }, `ترتيب-${dimDef.label}`);
+      });
+    }
 
     body.querySelectorAll('th.sortable').forEach((th) => {
       th.addEventListener('click', () => {
@@ -2020,7 +2153,10 @@ function renderReportsBody(body, root) {
         <span class="report-eyebrow">${icon(dimDef.icon, 13)} ${escapeHtml(dimDef.singular)}</span>
         <h3 class="report-value">${escapeHtml(report.value) || 'غير محدد'}</h3>
       </div>
-      <button class="btn btn-ghost btn-sm" id="backToRank">${icon('refresh')} عرض الترتيب الكامل</button>
+      <div class="report-header-actions">
+        <button class="btn btn-outline btn-sm" id="exportReportPdf">${icon('download', 14)} تصدير PDF</button>
+        <button class="btn btn-ghost btn-sm" id="backToRank">${icon('refresh')} عرض الترتيب الكامل</button>
+      </div>
     </div>
 
     <div class="kpi-grid">
@@ -2046,6 +2182,18 @@ function renderReportsBody(body, root) {
   body.querySelector('#backToRank').addEventListener('click', () => {
     _reportState.value = '';
     renderReports(root);
+  });
+  body.querySelector('#exportReportPdf').addEventListener('click', () => {
+    const columns = report.columns.map((label, i) => ({ label, align: i === 0 ? 'start' : 'center' }));
+    const rows = report.rows.map((r) => ({
+      _overdue: r.state === 'overdue',
+      cells: r.cells.map((c) => String(c)),
+    }));
+    saveTablePdf({
+      title: `${dimDef.singular}: ${report.value || 'غير محدد'}`,
+      subtitle: `${report.rows.length} كتاب`,
+      columns, rows,
+    }, `${dimDef.singular}-${report.value || 'غير محدد'}`);
   });
   body.querySelectorAll('.report-book').forEach((tr) => {
     tr.addEventListener('click', () => showBookDetails(tr.dataset.book));
@@ -2139,6 +2287,11 @@ function showIntegrityReport(report) {
 function renderSettings(root) {
   const meta = RAFF_STATE.meta;
   const st = RAFF_STATE.settings || {};
+  const cols = (st.labelColumns >= 1 && st.labelColumns <= 5) ? st.labelColumns : 4;
+  const lblSize = st.labelSize === 'medium' ? 'medium' : 'small';
+  const loanDays = st.loanDurationDays || 30;
+
+  const tab = _settingsTab || 'brand';
   const exportRow = (title, desc, id) => `
     <div class="setting-action">
       <div>
@@ -2148,24 +2301,21 @@ function renderSettings(root) {
       <button class="btn btn-outline btn-sm" id="${id}">${icon('download')} تصدير</button>
     </div>`;
 
-  const cols = (st.labelColumns >= 1 && st.labelColumns <= 5) ? st.labelColumns : 4;
-  const lblSize = st.labelSize === 'medium' ? 'medium' : 'small';
+  const TABS = [
+    { key: 'brand', label: 'الهوية والملصقات', icon: 'printer' },
+    { key: 'loan', label: 'الإعارة', icon: 'calendar' },
+    { key: 'export', label: 'التصدير', icon: 'download' },
+    { key: 'backup', label: 'النسخ والصيانة', icon: 'copies' },
+    { key: 'system', label: 'النظام', icon: 'info' },
+  ];
 
-  root.innerHTML = `
-    <div class="settings-grid">
-      <div class="panel panel-brand">
-        <div class="panel-header">
-          <div>
-            <h2 class="panel-title">${icon('printer', 18)} هوية المؤسسة والملصقات</h2>
-            <p class="panel-desc">تظهر على ملصقات الباركود المطبوعة</p>
-          </div>
-        </div>
-
+  const panelBrand = `
+    <div class="settings-two-col">
+      <div>
         <div class="field">
           <label>اسم المكتبة / المؤسسة</label>
           <input type="text" id="setInstName" value="${escapeHtml(st.institutionName || '')}" placeholder="مثال: مكتبة المسجد المركزي" maxlength="120" />
         </div>
-
         <div class="field">
           <label>شعار المؤسسة</label>
           <div class="logo-row">
@@ -2180,132 +2330,140 @@ function renderSettings(root) {
           </div>
           <span class="hint">PNG أو JPG أو SVG — يُحفظ محلياً داخل المكتبة فقط.</span>
         </div>
-
-        <div class="label-opts">
-          <div class="label-opt-cols">
-            <label>عدد الأعمدة في ورقة A4</label>
-            <div class="chip-toggle" id="setCols">
-              ${[3, 4, 5].map((n) => `<button data-cols="${n}" class="${n === cols ? 'active' : ''}">${n}</button>`).join('')}
-            </div>
-          </div>
-          <div class="label-opt-cols">
-            <label>حجم الملصق</label>
-            <div class="chip-toggle" id="setSize">
-              <button data-size="small" class="${lblSize === 'small' ? 'active' : ''}">صغير</button>
-              <button data-size="medium" class="${lblSize === 'medium' ? 'active' : ''}">متوسط</button>
-            </div>
-          </div>
-          <span class="hint">الملصق الصغير (4 أعمدة) مثالي للصقه خلف الكتاب دون حجب بياناته. الورق A4.</span>
-          <label class="toggle-row"><input type="checkbox" id="setPrice" ${st.labelShowPrice !== false ? 'checked' : ''}> إظهار السعر على الملصق</label>
-          <label class="toggle-row"><input type="checkbox" id="setShelf" ${st.labelShowShelf !== false ? 'checked' : ''}> إظهار الرف على الملصق</label>
-          <label class="toggle-row"><input type="checkbox" id="setMicro" ${st.labelShowMicrotext !== false ? 'checked' : ''}> معلومات دقيقة خفية (المؤلف والناشر…)</label>
-        </div>
-
-        <div class="setting-action" style="border-top:1px solid var(--parchment-200);margin-top:6px;padding-top:12px;">
-          <div>
-            <div class="setting-action-title">معاينة الطباعة</div>
-            <div class="setting-action-desc">جرّب شكل الملصقات على أول 6 كتب</div>
-          </div>
-          <button class="btn btn-outline btn-sm" id="previewLabelsBtn">${icon('printer', 14)} معاينة</button>
-        </div>
       </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <h2 class="panel-title">تصدير المكتبة</h2>
-            <p class="panel-desc">احفظ فهرسك بالصيغة التي تناسبك</p>
+      <div class="label-opts">
+        <div class="label-opt-cols">
+          <label>عدد الأعمدة (A4)</label>
+          <div class="chip-toggle" id="setCols">
+            ${[3, 4, 5].map((n) => `<button data-cols="${n}" class="${n === cols ? 'active' : ''}">${n}</button>`).join('')}
           </div>
         </div>
-        ${exportRow('نسخة احتياطية كاملة (JSON)', 'قابلة للاستيراد لاحقاً على أي جهاز', 'exportJsonBtn')}
-        ${exportRow('جدول بيانات (CSV)', 'لفتحه في Excel', 'exportCsvBtn')}
-        ${exportRow('ملف نصي (TXT)', 'قائمة مقروءة بجميع الكتب', 'exportTxtBtn')}
-        ${exportRow('تقرير (PDF)', 'جدول منسّق جاهز للطباعة', 'exportPdfBtn')}
-        ${exportRow('الإعارات المتأخرة (CSV)', 'المتأخرة فقط مع وسيلة التواصل', 'exportOverdueBtn')}
+        <div class="label-opt-cols">
+          <label>حجم الملصق</label>
+          <div class="chip-toggle" id="setSize">
+            <button data-size="small" class="${lblSize === 'small' ? 'active' : ''}">صغير</button>
+            <button data-size="medium" class="${lblSize === 'medium' ? 'active' : ''}">متوسط</button>
+          </div>
+        </div>
+        <label class="toggle-row"><input type="checkbox" id="setPrice" ${st.labelShowPrice !== false ? 'checked' : ''}> إظهار السعر على الملصق</label>
+        <label class="toggle-row"><input type="checkbox" id="setShelf" ${st.labelShowShelf !== false ? 'checked' : ''}> إظهار الرف على الملصق</label>
+        <label class="toggle-row"><input type="checkbox" id="setMicro" ${st.labelShowMicrotext !== false ? 'checked' : ''}> معلومات دقيقة خفية</label>
+        <button class="btn btn-outline btn-sm" id="previewLabelsBtn" style="margin-top:6px;justify-content:center;">${icon('printer', 14)} معاينة الملصقات</button>
       </div>
+    </div>`;
 
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <h2 class="panel-title">الصيانة والأمان</h2>
-            <p class="panel-desc">النسخ الاحتياطية وفحص سلامة البيانات</p>
+  const panelLoan = `
+    <div class="loan-setting">
+      <div class="field">
+        <label>${icon('calendar', 14)} مدة الإعارة الافتراضية (بالأيام)</label>
+        <div class="loan-days-row">
+          <div class="chip-toggle" id="setLoanChips">
+            ${[7, 14, 30, 60, 90].map((n) => `<button data-days="${n}" class="${n === loanDays ? 'active' : ''}">${n}</button>`).join('')}
+          </div>
+          <div class="loan-days-custom">
+            <span>أو مخصّص:</span>
+            <input type="number" id="setLoanCustom" min="1" max="3650" value="${loanDays}" />
+            <span>يوم</span>
           </div>
         </div>
-        <div class="setting-action">
-          <div>
-            <div class="setting-action-title">نسخة أمان فورية</div>
-            <div class="setting-action-desc">حفظ لقطة داخلية يمكن الرجوع إليها</div>
-          </div>
-          <button class="btn btn-outline btn-sm" id="backupBtn">${icon('copies')} إنشاء نسخة</button>
-        </div>
-        <div class="setting-action">
-          <div>
-            <div class="setting-action-title">فحص سلامة البيانات</div>
-            <div class="setting-action-desc">كشف المتأخرات والنواقص والتكرار المحتمل</div>
-          </div>
-          <button class="btn btn-outline btn-sm" id="integrityBtn">${icon('check')} فحص الآن</button>
-        </div>
-        <div class="setting-action">
-          <div>
-            <div class="setting-action-title">مجلد بيانات البرنامج</div>
-            <div class="setting-action-desc">يحوي قاعدة البيانات والنسخ الاحتياطية</div>
-          </div>
-          <button class="btn btn-outline btn-sm" id="openFolderBtn">${icon('building')} فتح المجلد</button>
-        </div>
-        <div class="setting-action">
-          <div>
-            <div class="setting-action-title">استيراد نسخة احتياطية</div>
-            <div class="setting-action-desc">تُنشأ نسخة أمان تلقائياً قبل الاستيراد</div>
-          </div>
-          <button class="btn btn-outline btn-sm" id="importJsonBtn">${icon('upload')} استيراد</button>
-        </div>
+        <span class="hint">عند إعارة كتاب دون تحديد تاريخ إرجاع، يُحسب الاستحقاق بعد هذه المدة. تجاوز هذا التاريخ يُعدّ تأخيراً.</span>
       </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <h2 class="panel-title">معلومات النظام</h2>
-            <p class="panel-desc">نظرة سريعة على المكتبة</p>
-          </div>
-        </div>
-        <div class="system-stats">
-          <div class="system-stat"><span class="system-stat-value">${RAFF_STATE.books.length}</span><span class="system-stat-label">كتاب</span></div>
-          <div class="system-stat"><span class="system-stat-value">${meta.authors.length}</span><span class="system-stat-label">مؤلف</span></div>
-          <div class="system-stat"><span class="system-stat-value">${meta.publishers.length}</span><span class="system-stat-label">دار نشر</span></div>
-          <div class="system-stat"><span class="system-stat-value">${meta.series.length}</span><span class="system-stat-label">سلسلة</span></div>
-        </div>
-
-        <div class="db-path">
-          <span class="setting-action-desc">مسار ملف البيانات</span>
-          <code title="${escapeHtml(meta.filePath)}">${escapeHtml(meta.filePath)}</code>
-        </div>
-
-        <div class="danger-zone">
-          <div>
-            <div class="setting-action-title" style="color:var(--danger);">حذف جميع بيانات المكتبة</div>
-            <div class="setting-action-desc">تُنشأ نسخة أمان تلقائياً قبل الحذف</div>
-          </div>
-          <button class="btn btn-danger btn-sm" id="resetAllBtn">${icon('trash')} حذف الكل</button>
-        </div>
+      <div class="loan-current-note">
+        ${icon('info', 14)} <span>مدة الإعارة الحالية: <b>${loanDays} يوماً</b>. لا يؤثر التغيير على الإعارات القائمة، بل على الجديدة فقط.</span>
       </div>
+    </div>`;
+
+  const panelExport = `
+    ${exportRow('نسخة احتياطية كاملة (JSON)', 'قابلة للاستيراد لاحقاً على أي جهاز', 'exportJsonBtn')}
+    ${exportRow('جدول بيانات (CSV)', 'لفتحه في Excel', 'exportCsvBtn')}
+    ${exportRow('ملف نصي (TXT)', 'قائمة مقروءة بجميع الكتب', 'exportTxtBtn')}
+    ${exportRow('تقرير المكتبة (PDF)', 'جدول منسّق جاهز للطباعة', 'exportPdfBtn')}
+    ${exportRow('المستعيرون (PDF)', 'الأسماء والكتب ويوم الإعارة', 'exportBorrowersBtn')}
+    ${exportRow('المتأخرون فقط (PDF)', 'المتأخرون مع أيام التأخير', 'exportOverduePdfBtn')}
+    ${exportRow('الإعارات المتأخرة (CSV)', 'المتأخرة فقط مع وسيلة التواصل', 'exportOverdueBtn')}`;
+
+  const panelBackup = `
+    <div class="setting-action">
+      <div><div class="setting-action-title">نسخة أمان فورية</div><div class="setting-action-desc">حفظ لقطة داخلية يمكن الرجوع إليها</div></div>
+      <button class="btn btn-outline btn-sm" id="backupBtn">${icon('copies')} إنشاء نسخة</button>
     </div>
-  `;
+    <div class="setting-action">
+      <div><div class="setting-action-title">فحص سلامة البيانات</div><div class="setting-action-desc">كشف المتأخرات والنواقص والتكرار المحتمل</div></div>
+      <button class="btn btn-outline btn-sm" id="integrityBtn">${icon('check')} فحص الآن</button>
+    </div>
+    <div class="setting-action">
+      <div><div class="setting-action-title">استيراد نسخة احتياطية</div><div class="setting-action-desc">تُنشأ نسخة أمان تلقائياً قبل الاستيراد</div></div>
+      <button class="btn btn-outline btn-sm" id="importJsonBtn">${icon('upload')} استيراد</button>
+    </div>
+    <div class="setting-action">
+      <div><div class="setting-action-title">مجلد بيانات البرنامج</div><div class="setting-action-desc">يحوي قاعدة البيانات والنسخ الاحتياطية</div></div>
+      <button class="btn btn-outline btn-sm" id="openFolderBtn">${icon('building')} فتح المجلد</button>
+    </div>
+    <div class="danger-zone">
+      <div><div class="setting-action-title" style="color:var(--danger);">حذف جميع بيانات المكتبة</div><div class="setting-action-desc">تُنشأ نسخة أمان تلقائياً قبل الحذف</div></div>
+      <button class="btn btn-danger btn-sm" id="resetAllBtn">${icon('trash')} حذف الكل</button>
+    </div>`;
 
-  // ---- Institution branding & label settings ----
+  const panelSystem = `
+    <div class="system-stats">
+      <div class="system-stat"><span class="system-stat-value">${RAFF_STATE.books.length}</span><span class="system-stat-label">كتاب</span></div>
+      <div class="system-stat"><span class="system-stat-value">${meta.authors.length}</span><span class="system-stat-label">مؤلف</span></div>
+      <div class="system-stat"><span class="system-stat-value">${meta.publishers.length}</span><span class="system-stat-label">دار نشر</span></div>
+      <div class="system-stat"><span class="system-stat-value">${meta.series.length}</span><span class="system-stat-label">سلسلة</span></div>
+    </div>
+    <div class="db-path">
+      <span class="setting-action-desc">مسار ملف البيانات</span>
+      <code title="${escapeHtml(meta.filePath)}">${escapeHtml(meta.filePath)}</code>
+    </div>`;
+
+  const panels = { brand: panelBrand, loan: panelLoan, export: panelExport, backup: panelBackup, system: panelSystem };
+
+  root.innerHTML = `
+    <div class="panel settings-tabbed">
+      <div class="settings-tabs" id="settingsTabs">
+        ${TABS.map((t) => `<button class="settings-tab ${t.key === tab ? 'active' : ''}" data-tab="${t.key}">${icon(t.icon, 15)}<span>${t.label}</span></button>`).join('')}
+      </div>
+      <div class="settings-tab-body" id="settingsTabBody">${panels[tab]}</div>
+    </div>`;
+
+  root.querySelector('#settingsTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-tab]');
+    if (!btn) return;
+    _settingsTab = btn.dataset.tab;
+    renderSettings(root);
+  });
+
+  wireSettingsHandlers(root, tab);
+}
+
+// Declared at module scope so the tab selection persists across re-renders.
+let _settingsTab = 'brand';
+
+/**
+ * Attaches handlers for whichever settings tab is currently rendered. Each
+ * lookup is guarded (the element only exists on its tab), so one function
+ * safely serves every tab.
+ */
+function wireSettingsHandlers(root, tab) {
+  const $ = (sel) => root.querySelector(sel);
+  const on = (sel, ev, fn) => { const el = $(sel); if (el) el.addEventListener(ev, fn); };
+
   const saveSetting = async (patch) => {
     const updated = await window.raff.updateSettings(patch);
     RAFF_STATE.settings = updated;
   };
 
-  const instInput = root.querySelector('#setInstName');
-  let instTimer = null;
-  instInput.addEventListener('input', () => {
-    if (instTimer) clearTimeout(instTimer);
-    instTimer = setTimeout(() => saveSetting({ institutionName: instInput.value }), 400);
-  });
-
-  root.querySelector('#logoPickBtn').addEventListener('click', () => root.querySelector('#logoFile').click());
-  root.querySelector('#logoFile').addEventListener('change', (e) => {
+  // ---- Brand / labels tab ----
+  const instInput = $('#setInstName');
+  if (instInput) {
+    let instTimer = null;
+    instInput.addEventListener('input', () => {
+      if (instTimer) clearTimeout(instTimer);
+      instTimer = setTimeout(() => saveSetting({ institutionName: instInput.value }), 400);
+    });
+  }
+  on('#logoPickBtn', 'click', () => $('#logoFile').click());
+  on('#logoFile', 'change', (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     if (file.size > 500 * 1024) { toast('حجم الشعار كبير (الحد 500 كيلوبايت)', 'error'); return; }
@@ -2313,109 +2471,108 @@ function renderSettings(root) {
     reader.onload = async () => {
       const dataUrl = reader.result;
       await saveSetting({ logo: dataUrl });
-      const preview = root.querySelector('#logoPreview');
-      preview.innerHTML = `<img src="${dataUrl}" alt="الشعار">`;
-      root.querySelector('#logoClearBtn').classList.remove('hidden');
+      $('#logoPreview').innerHTML = `<img src="${dataUrl}" alt="الشعار">`;
+      $('#logoClearBtn').classList.remove('hidden');
       toast('تم حفظ الشعار', 'success', 1600);
     };
     reader.readAsDataURL(file);
   });
-  root.querySelector('#logoClearBtn').addEventListener('click', async () => {
+  on('#logoClearBtn', 'click', async () => {
     await saveSetting({ logo: '' });
-    root.querySelector('#logoPreview').innerHTML = `<span class="logo-empty">${icon('barcode', 22)} لا يوجد شعار</span>`;
-    root.querySelector('#logoClearBtn').classList.add('hidden');
+    $('#logoPreview').innerHTML = `<span class="logo-empty">${icon('barcode', 22)} لا يوجد شعار</span>`;
+    $('#logoClearBtn').classList.add('hidden');
     toast('تم إزالة الشعار', 'success', 1600);
   });
-
-  root.querySelector('#setCols').addEventListener('click', (e) => {
+  on('#setCols', 'click', (e) => {
     const btn = e.target.closest('button[data-cols]');
     if (!btn) return;
     root.querySelectorAll('#setCols button').forEach((b) => b.classList.toggle('active', b === btn));
     saveSetting({ labelColumns: Number(btn.dataset.cols) });
   });
-  root.querySelector('#setSize').addEventListener('click', (e) => {
+  on('#setSize', 'click', (e) => {
     const btn = e.target.closest('button[data-size]');
     if (!btn) return;
     root.querySelectorAll('#setSize button').forEach((b) => b.classList.toggle('active', b === btn));
     saveSetting({ labelSize: btn.dataset.size });
   });
-  root.querySelector('#setPrice').addEventListener('change', (e) => saveSetting({ labelShowPrice: e.target.checked }));
-  root.querySelector('#setShelf').addEventListener('change', (e) => saveSetting({ labelShowShelf: e.target.checked }));
-  root.querySelector('#setMicro').addEventListener('change', (e) => saveSetting({ labelShowMicrotext: e.target.checked }));
-
-  root.querySelector('#previewLabelsBtn').addEventListener('click', () => {
+  on('#setPrice', 'change', (e) => saveSetting({ labelShowPrice: e.target.checked }));
+  on('#setShelf', 'change', (e) => saveSetting({ labelShowShelf: e.target.checked }));
+  on('#setMicro', 'change', (e) => saveSetting({ labelShowMicrotext: e.target.checked }));
+  on('#previewLabelsBtn', 'click', () => {
     const sample = RAFF_STATE.books.slice(0, 6);
     if (!sample.length) { toast('لا توجد كتب للمعاينة', 'error'); return; }
     printBarcodeLabels(sample, 'معاينة');
   });
 
-  root.querySelector('#exportJsonBtn').addEventListener('click', async () => {
-    const res = await window.raff.exportJson();
-    if (res.ok) toast('تم حفظ النسخة الاحتياطية بنجاح', 'success');
+  // ---- Loan tab ----
+  on('#setLoanChips', 'click', (e) => {
+    const btn = e.target.closest('button[data-days]');
+    if (!btn) return;
+    const days = Number(btn.dataset.days);
+    root.querySelectorAll('#setLoanChips button').forEach((b) => b.classList.toggle('active', b === btn));
+    const custom = $('#setLoanCustom'); if (custom) custom.value = days;
+    saveSetting({ loanDurationDays: days });
+    const note = $('.loan-current-note b'); if (note) note.textContent = `${days} يوماً`;
   });
-  root.querySelector('#exportCsvBtn').addEventListener('click', async () => {
-    const res = await window.raff.exportCsv();
-    if (res.ok) toast('تم تصدير الملف بصيغة CSV', 'success');
-  });
-  root.querySelector('#exportTxtBtn').addEventListener('click', async () => {
-    const res = await window.raff.exportTxt();
-    if (res.ok) toast('تم تصدير الملف النصي بنجاح', 'success');
-  });
-  root.querySelector('#exportPdfBtn').addEventListener('click', async () => {
-    const btn = root.querySelector('#exportPdfBtn');
-    const original = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = 'جارٍ التصدير...';
+  const loanCustom = $('#setLoanCustom');
+  if (loanCustom) {
+    let lt = null;
+    loanCustom.addEventListener('input', () => {
+      if (lt) clearTimeout(lt);
+      lt = setTimeout(() => {
+        const days = Math.max(1, Math.min(3650, Math.floor(Number(loanCustom.value) || 30)));
+        root.querySelectorAll('#setLoanChips button').forEach((b) => b.classList.toggle('active', Number(b.dataset.days) === days));
+        saveSetting({ loanDurationDays: days });
+        const note = $('.loan-current-note b'); if (note) note.textContent = `${days} يوماً`;
+      }, 500);
+    });
+  }
+
+  // ---- Export tab ----
+  on('#exportJsonBtn', 'click', async () => { const r = await window.raff.exportJson(); if (r.ok) toast('تم حفظ النسخة الاحتياطية بنجاح', 'success'); });
+  on('#exportCsvBtn', 'click', async () => { const r = await window.raff.exportCsv(); if (r.ok) toast('تم تصدير الملف بصيغة CSV', 'success'); });
+  on('#exportTxtBtn', 'click', async () => { const r = await window.raff.exportTxt(); if (r.ok) toast('تم تصدير الملف النصي بنجاح', 'success'); });
+  on('#exportPdfBtn', 'click', async (e) => {
+    const btn = e.currentTarget; const original = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = 'جارٍ التصدير...';
     try {
       const res = await window.raff.exportPdf();
       if (res.ok) toast('تم تصدير ملف PDF بنجاح', 'success');
       else if (res.error) toast('فشل تصدير PDF: ' + res.error, 'error');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = original;
-    }
+    } finally { btn.disabled = false; btn.innerHTML = original; }
   });
-  root.querySelector('#exportOverdueBtn').addEventListener('click', async () => {
-    const res = await window.raff.exportOverdueCsv();
-    if (res.ok) toast(`تم تصدير ${res.count} إعارة متأخرة`, 'success');
-  });
-  root.querySelector('#backupBtn').addEventListener('click', async () => {
+  on('#exportBorrowersBtn', 'click', () => exportBorrowersPdf({ overdueOnly: false }));
+  on('#exportOverduePdfBtn', 'click', () => exportBorrowersPdf({ overdueOnly: true }));
+  on('#exportOverdueBtn', 'click', async () => { const r = await window.raff.exportOverdueCsv(); if (r.ok) toast(`تم تصدير ${r.count} إعارة متأخرة`, 'success'); });
+
+  // ---- Backup tab ----
+  on('#backupBtn', 'click', async () => {
     const res = await window.raff.backup();
-    if (res.ok) toast('تم إنشاء نسخة أمان', 'success');
-    else toast('تعذّر إنشاء النسخة', 'error');
+    toast(res.ok ? 'تم إنشاء نسخة أمان' : 'تعذّر إنشاء النسخة', res.ok ? 'success' : 'error');
   });
-  root.querySelector('#openFolderBtn').addEventListener('click', async () => {
-    const res = await window.raff.openDataFolder();
-    if (!res.ok) toast('تعذّر فتح المجلد', 'error');
-  });
-  root.querySelector('#integrityBtn').addEventListener('click', async () => {
+  on('#openFolderBtn', 'click', async () => { const r = await window.raff.openDataFolder(); if (!r.ok) toast('تعذّر فتح المجلد', 'error'); });
+  on('#integrityBtn', 'click', async () => {
     const res = await window.raff.integrityCheck();
-    if (res.ok) showIntegrityReport(res.report);
-    else toast('تعذّر إجراء الفحص', 'error');
+    if (res.ok) showIntegrityReport(res.report); else toast('تعذّر إجراء الفحص', 'error');
   });
-  root.querySelector('#importJsonBtn').addEventListener('click', async () => {
+  on('#importJsonBtn', 'click', async () => {
     const res = await window.raff.importJson();
     if (res.ok) {
       toast(`تم استيراد ${res.added} كتاب${res.skipped ? ` (تم تجاهل ${res.skipped} مكرر)` : ''}`, 'success');
-      await refreshState();
-      renderNavCounts();
-      renderRoute();
-    } else if (res.error) {
-      toast('فشل الاستيراد: ' + res.error, 'error');
-    }
+      await refreshState(); renderNavCounts(); renderRoute();
+    } else if (res.error) toast('فشل الاستيراد: ' + res.error, 'error');
   });
-  root.querySelector('#resetAllBtn').addEventListener('click', async () => {
+  on('#resetAllBtn', 'click', async () => {
     const ok = await confirmModal({
       title: 'حذف جميع بيانات المكتبة؟',
       message: 'ستُنشأ نسخة أمان تلقائياً قبل الحذف يمكن الرجوع إليها من مجلد البيانات. هل تريد المتابعة؟',
       confirmLabel: 'حذف كل شيء',
     });
     if (!ok) return;
-    const res = await window.raff.resetAll();
-    await refreshState();
-    renderNavCounts();
+    await window.raff.resetAll();
+    await refreshState(); renderNavCounts();
     toast('تم حذف جميع البيانات (مع حفظ نسخة أمان)', 'success');
     navigateTo('dashboard');
-    void res;
   });
+  void tab;
 }

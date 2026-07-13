@@ -12,7 +12,7 @@ const ROUTES = {
   stats: { title: 'الإحصائيات', subtitle: 'أرقام وتحليلات حول مكتبتك', render: (root) => renderStats(root) },
   reports: { title: 'الاستدعاء', subtitle: 'استدعِ مستعيراً أو دار نشر أو مؤلفاً واحصل على تحليل كامل بالأرقام', render: (root) => renderReports(root) },
   scan: { title: 'المسح الضوئي والباركود', subtitle: 'امسح باركود كتاب لعرض بياناته فوراً، أو اطبع ملصقات الباركود', render: (root) => renderScanView(root) },
-  settings: { title: 'النسخ الاحتياطي والإعدادات', subtitle: 'إدارة بيانات المكتبة وإعدادات النظام', render: (root) => renderSettings(root) },
+  settings: { title: 'الإعدادات والنسخ', subtitle: 'الهوية والملصقات ومدة الإعارة والنسخ الاحتياطي', render: (root) => renderSettings(root) },
   edit: { title: 'تعديل بيانات الكتاب', subtitle: '', render: (root, ctx) => renderAddForm(root, ctx.book) },
 };
 

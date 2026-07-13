@@ -92,6 +92,7 @@ function defaultSettings() {
     labelShowPrice: true,
     labelShowShelf: true,
     labelShowMicrotext: true, // معلومات دقيقة شبه خفية
+    loanDurationDays: 30,      // مدة الإعارة الافتراضية بالأيام
   };
 }
 
@@ -258,6 +259,10 @@ class Store {
     }
     if (patch.labelSize !== undefined) {
       next.labelSize = ['small', 'medium'].includes(patch.labelSize) ? patch.labelSize : cur.labelSize;
+    }
+    if (patch.loanDurationDays !== undefined) {
+      const n = Math.floor(Number(patch.loanDurationDays));
+      next.loanDurationDays = (n >= 1 && n <= 3650) ? n : cur.loanDurationDays;
     }
     for (const k of ['labelShowPrice', 'labelShowShelf', 'labelShowMicrotext']) {
       if (patch[k] !== undefined) next[k] = !!patch[k];
@@ -484,14 +489,16 @@ class Store {
     if (isNaN(when.getTime())) return { ok: false, error: 'تاريخ الإعارة غير صالح' };
     if (when.getTime() > Date.now() + 86400000) return { ok: false, error: 'لا يمكن أن يكون تاريخ الإعارة في المستقبل' };
 
-    // Due date defaults to 30 days after borrowing, but can be set explicitly.
+    // Due date defaults to the library's configured loan period after
+    // borrowing (30 days out of the box), but can be set explicitly.
     let due;
     if (payload.dueAt) {
       due = new Date(payload.dueAt);
       if (isNaN(due.getTime())) return { ok: false, error: 'تاريخ الإرجاع غير صالح' };
       if (due.getTime() < when.getTime()) return { ok: false, error: 'تاريخ الإرجاع أسبق من تاريخ الإعارة' };
     } else {
-      due = new Date(when.getTime() + DEFAULT_LOAN_DAYS * 86400000);
+      const days = this.getSettings().loanDurationDays || DEFAULT_LOAN_DAYS;
+      due = new Date(when.getTime() + days * 86400000);
     }
 
     book.loans.push({
@@ -847,6 +854,45 @@ class Store {
     const lines = [headers, ...rows].map((r) => r.map(escape).join(','));
     fs.writeFileSync(filePath, '\uFEFF' + lines.join('\r\n'), 'utf-8');
     return { count: rows.length };
+  }
+
+  /**
+   * Returns every currently-open loan flattened with its book and borrower
+   * details, sorted with overdue loans first (then by how late they are).
+   * Used by the loans view and the borrower PDF exports.
+   */
+  getActiveLoans({ overdueOnly = false } = {}) {
+    const now = Date.now();
+    const out = [];
+    for (const b of this.db.books) {
+      for (const l of b.loans || []) {
+        if (l.returnedAt) continue;
+        const overdue = B.isOverdue(l, DEFAULT_LOAN_DAYS, now);
+        if (overdueOnly && !overdue) continue;
+        const overdueDays = overdue && l.dueAt
+          ? Math.max(0, Math.ceil((now - Date.parse(l.dueAt)) / 86400000)) : 0;
+        out.push({
+          bookId: b.id,
+          title: b.title,
+          referenceNumber: b.referenceNumber,
+          borrowerName: l.borrowerName || '',
+          contact: l.contact || '',
+          scope: B.loanScopeLabel(l),
+          borrowedAt: l.borrowedAt || null,
+          dueAt: l.dueAt || null,
+          overdue,
+          overdueDays,
+          note: l.note || '',
+        });
+      }
+    }
+    // Overdue first, then most-overdue, then soonest due.
+    out.sort((a, b) => {
+      if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
+      if (a.overdue && b.overdue) return b.overdueDays - a.overdueDays;
+      return (Date.parse(a.dueAt) || 0) - (Date.parse(b.dueAt) || 0);
+    });
+    return out;
   }
 }
 

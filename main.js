@@ -70,6 +70,7 @@ app.whenReady().then(() => {
   ipcMain.handle('lib:meta', () => store.getMeta());
   ipcMain.handle('lib:getSettings', () => store.getSettings());
   ipcMain.handle('lib:updateSettings', (_e, patch) => store.updateSettings(patch));
+  ipcMain.handle('lib:getActiveLoans', (_e, opts) => store.getActiveLoans(opts || {}));
   ipcMain.handle('lib:peekNextRef', () => store.peekNextReferenceNumber());
 
   // ---- IPC: Backup / restore ----
@@ -156,6 +157,41 @@ app.whenReady().then(() => {
       await new Promise((r) => setTimeout(r, 250));
       const pdfBuffer = await printWin.webContents.printToPDF({
         landscape: false,
+        printBackground: true,
+        pageSize: 'A4',
+        margins: { marginType: 'default' },
+      });
+      fs.writeFileSync(filePath, pdfBuffer);
+      return { ok: true, filePath };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    } finally {
+      printWin.destroy();
+      fs.unlink(tmpHtmlPath, () => {});
+    }
+  });
+
+  // Generic "save a prepared HTML table as PDF" — used for borrowers, overdue
+  // borrowers, and each report category. The renderer builds branded HTML; we
+  // just render it to a landscape A4 PDF and save it.
+  ipcMain.handle('lib:saveTablePdf', async (_e, html, fileHint) => {
+    const safeName = (fileHint || 'تقرير').toString().replace(/[\\/:*?"<>|]/g, '_').slice(0, 60);
+    const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+      title: 'حفظ كملف PDF',
+      defaultPath: `raff-${safeName}-${new Date().toISOString().slice(0, 10)}.pdf`,
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+    });
+    if (canceled || !filePath) return { ok: false, canceled: true };
+
+    const tmpHtmlPath = path.join(app.getPath('temp'), `raff-table-${Date.now()}.html`);
+    fs.writeFileSync(tmpHtmlPath, html, 'utf-8');
+
+    const printWin = new BrowserWindow({ show: false, webPreferences: { sandbox: false } });
+    try {
+      await printWin.loadFile(tmpHtmlPath);
+      await new Promise((r) => setTimeout(r, 200));
+      const pdfBuffer = await printWin.webContents.printToPDF({
+        landscape: true,
         printBackground: true,
         pageSize: 'A4',
         margins: { marginType: 'default' },

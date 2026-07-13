@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('raff', {
   getMeta: () => ipcRenderer.invoke('lib:meta'),
   getSettings: () => ipcRenderer.invoke('lib:getSettings'),
   updateSettings: (patch) => ipcRenderer.invoke('lib:updateSettings', patch),
+  getActiveLoans: (opts) => ipcRenderer.invoke('lib:getActiveLoans', opts),
+  saveTablePdf: (html, fileHint) => ipcRenderer.invoke('lib:saveTablePdf', html, fileHint),
   peekNextRef: () => ipcRenderer.invoke('lib:peekNextRef'),
 
   exportJson: () => ipcRenderer.invoke('lib:exportJson'),
