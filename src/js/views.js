@@ -223,6 +223,8 @@ function showBookDetails(bookId) {
 
         <div class="form-actions detail-actions">
           <button class="btn btn-outline btn-sm" id="detailEdit">${icon('edit')} تعديل</button>
+          <button class="btn btn-outline btn-sm" id="detailPrintLabel">${icon('printer')} طباعة الملصق</button>
+          <button class="btn btn-outline btn-sm" id="detailPdfLabel">${icon('download')} حفظ PDF</button>
           <button class="btn btn-outline btn-sm" id="detailCopyRef">${icon('hash')} نسخ الرقم</button>
           <button class="btn btn-danger btn-sm" id="detailDelete">${icon('trash')} حذف</button>
         </div>
@@ -386,6 +388,13 @@ function showBookDetails(bookId) {
       overlay.querySelector('#detailEdit').addEventListener('click', () => {
         closeModal();
         navigateTo('edit', { book });
+      });
+      overlay.querySelector('#detailPrintLabel').addEventListener('click', () => {
+        // Uses the size/columns/branding configured in settings automatically.
+        printBarcodeLabels([book], book.title);
+      });
+      overlay.querySelector('#detailPdfLabel').addEventListener('click', () => {
+        saveBarcodeLabelsPdf([book], book.title);
       });
       overlay.querySelector('#detailCopyRef').addEventListener('click', async () => {
         try {
@@ -1756,7 +1765,7 @@ async function saveBarcodeLabelsPdf(books, titleLabel) {
  * loans, or a report category). columns = [{label, align}], rows = array of
  * arrays of cell strings. Shared so every PDF export looks consistent.
  */
-function buildTablePdfHtml({ title, subtitle, columns, rows }) {
+function buildTablePdfHtml({ title, subtitle, columns, rows, groups }) {
   const s = RAFF_STATE.settings || {};
   const institution = (s.institutionName || '').trim();
   const logo = s.logo || '';
@@ -1764,11 +1773,39 @@ function buildTablePdfHtml({ title, subtitle, columns, rows }) {
 
   const thead = columns.map((c) =>
     `<th style="text-align:${c.align === 'start' ? 'right' : 'center'};">${escapeHtml(c.label)}</th>`).join('');
-  const tbody = rows.map((r, i) => `<tr class="${r._overdue ? 'row-overdue' : ''}">
-    <td class="rnum">${i + 1}</td>
+
+  const renderRows = (rowList, startIndex) => rowList.map((r, i) => `<tr class="${r._overdue ? 'row-overdue' : ''}">
+    <td class="rnum">${startIndex + i + 1}</td>
     ${r.cells.map((cell, ci) =>
       `<td style="text-align:${columns[ci].align === 'start' ? 'right' : 'center'};">${escapeHtml(String(cell == null ? '' : cell))}</td>`).join('')}
   </tr>`).join('');
+
+  // Grouped mode: each group is a titled section (e.g. a borrower and their
+  // books, or a publisher and its titles). Otherwise a single flat table.
+  let anyOverdue = false;
+  let bodyHtml;
+  if (groups && groups.length) {
+    bodyHtml = groups.map((g) => {
+      if (g.rows.some((r) => r._overdue)) anyOverdue = true;
+      return `
+      <div class="group">
+        <div class="group-head">
+          <span class="group-title">${escapeHtml(g.title)}</span>
+          ${g.meta ? `<span class="group-meta">${escapeHtml(g.meta)}</span>` : ''}
+        </div>
+        <table>
+          <thead><tr><th class="rnum">#</th>${thead}</tr></thead>
+          <tbody>${renderRows(g.rows, 0)}</tbody>
+        </table>
+      </div>`;
+    }).join('');
+  } else {
+    anyOverdue = rows.some((r) => r._overdue);
+    bodyHtml = `<table>
+      <thead><tr><th class="rnum">#</th>${thead}</tr></thead>
+      <tbody>${renderRows(rows, 0)}</tbody>
+    </table>`;
+  }
 
   return `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8">
     <title>${escapeHtml(title)}</title>
@@ -1789,6 +1826,13 @@ function buildTablePdfHtml({ title, subtitle, columns, rows }) {
       .rnum { color: #b0894b; font-weight: 700; text-align: center; width: 8mm; }
       .row-overdue { background: #fbeaea !important; }
       .row-overdue td { color: #8a2f2f; font-weight: 600; }
+      .group { margin-bottom: 6mm; page-break-inside: avoid; }
+      .group-head {
+        display: flex; align-items: baseline; gap: 3mm;
+        background: #3e2c1c; color: #fff; padding: 2mm 3mm; border-radius: 1.5mm 1.5mm 0 0;
+      }
+      .group-title { font-size: 11pt; font-weight: 800; }
+      .group-meta { font-size: 8.5pt; color: #d8c7a8; }
       .legend { margin-top: 4mm; font-size: 8pt; color: #999; }
       .legend .od { display: inline-block; width: 3mm; height: 3mm; background: #fbeaea; border: 0.5pt solid #d99; vertical-align: middle; margin-inline-start: 2mm; }
     </style></head><body>
@@ -1800,16 +1844,14 @@ function buildTablePdfHtml({ title, subtitle, columns, rows }) {
       </div>
       <div class="date">${escapeHtml(today)}</div>
     </div>
-    <table>
-      <thead><tr><th class="rnum">#</th>${thead}</tr></thead>
-      <tbody>${tbody}</tbody>
-    </table>
-    ${rows.some((r) => r._overdue) ? '<div class="legend"><span class="od"></span> صف مظلّل = إعارة متأخرة</div>' : ''}
+    ${bodyHtml}
+    ${anyOverdue ? '<div class="legend"><span class="od"></span> صف مظلّل = إعارة متأخرة</div>' : ''}
     </body></html>`;
 }
 
 async function saveTablePdf(spec, fileHint) {
-  if (!spec.rows.length) { toast('لا توجد بيانات للتصدير', 'error'); return; }
+  const hasData = (spec.groups && spec.groups.length) || (spec.rows && spec.rows.length);
+  if (!hasData) { toast('لا توجد بيانات للتصدير', 'error'); return; }
   toast('جارٍ تجهيز ملف PDF…', 'success', 1800);
   try {
     const html = buildTablePdfHtml(spec);
@@ -1828,7 +1870,7 @@ function fmtLoanDate(iso) {
   return t ? new Date(t).toLocaleDateString('ar-EG') : '—';
 }
 
-/** Exports active borrowers (optionally overdue only) as a PDF. */
+/** Exports active borrowers grouped by borrower (name, then their books). */
 async function exportBorrowersPdf({ overdueOnly = false } = {}) {
   const loans = await window.raff.getActiveLoans({ overdueOnly });
   if (!loans.length) {
@@ -1836,7 +1878,6 @@ async function exportBorrowersPdf({ overdueOnly = false } = {}) {
     return;
   }
   const columns = [
-    { label: 'المستعير', align: 'start' },
     { label: 'الكتاب', align: 'start' },
     { label: 'الرقم المرجعي', align: 'center' },
     { label: 'النطاق', align: 'center' },
@@ -1844,19 +1885,115 @@ async function exportBorrowersPdf({ overdueOnly = false } = {}) {
     { label: 'تاريخ الاستحقاق', align: 'center' },
     { label: 'الحالة', align: 'center' },
   ];
-  const rows = loans.map((l) => ({
-    _overdue: l.overdue,
-    cells: [
-      l.borrowerName || '—', l.title || '—', l.referenceNumber || '—', l.scope,
-      fmtLoanDate(l.borrowedAt), fmtLoanDate(l.dueAt),
-      l.overdue ? `متأخر ${l.overdueDays} يوم` : 'ضمن المدة',
-    ],
-  }));
+
+  // Group loans by borrower. Preserve the overdue-first order of borrowers by
+  // using the order in which each borrower first appears (loans are already
+  // sorted overdue-first).
+  const order = [];
+  const byBorrower = new Map();
+  for (const l of loans) {
+    const name = l.borrowerName || 'غير مسمّى';
+    if (!byBorrower.has(name)) { byBorrower.set(name, []); order.push(name); }
+    byBorrower.get(name).push(l);
+  }
+
+  const groups = order.map((name) => {
+    const items = byBorrower.get(name);
+    const overdueCount = items.filter((l) => l.overdue).length;
+    return {
+      title: name,
+      meta: `${items.length} كتاب${overdueCount ? ` · ${overdueCount} متأخر` : ''}`,
+      rows: items.map((l) => ({
+        _overdue: l.overdue,
+        cells: [
+          l.title || '—', l.referenceNumber || '—', l.scope,
+          fmtLoanDate(l.borrowedAt), fmtLoanDate(l.dueAt),
+          l.overdue ? `متأخر ${l.overdueDays} يوم` : 'ضمن المدة',
+        ],
+      })),
+    };
+  });
+
   await saveTablePdf({
     title: overdueOnly ? 'المستعيرون المتأخرون' : 'المستعيرون والإعارات المفتوحة',
-    subtitle: `${loans.length} ${overdueOnly ? 'متأخر' : 'إعارة'}`,
-    columns, rows,
+    subtitle: `${order.length} مستعير · ${loans.length} ${overdueOnly ? 'متأخر' : 'إعارة'}`,
+    columns, groups,
   }, overdueOnly ? 'المتأخرون' : 'المستعيرون');
+}
+
+/** Small modal: export a dimension as a ranking summary, or grouped with books. */
+function showDimensionExportChoice(dim, dimDef, onSummary, onGrouped) {
+  const html = `
+    <div class="modal-header">
+      <h3 class="modal-title">${icon('download')} تصدير ${escapeHtml(dimDef.label)}</h3>
+      <button class="btn btn-ghost btn-icon" id="dxClose" aria-label="إغلاق">${icon('x')}</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-note" style="display:flex;">${icon('info', 13)} اختر شكل ملف الـPDF.</p>
+      <div class="export-choice">
+        <button class="export-choice-btn" id="dxSummary">
+          <span class="ec-icon">${icon('stack', 20)}</span>
+          <span class="ec-title">جدول الترتيب فقط</span>
+          <span class="ec-desc">صف واحد لكل ${escapeHtml(dimDef.singular)} مع أرقامه الإجمالية</span>
+        </button>
+        <button class="export-choice-btn" id="dxGrouped">
+          <span class="ec-icon">${icon('book', 20)}</span>
+          <span class="ec-title">مع الكتب</span>
+          <span class="ec-desc">كل ${escapeHtml(dimDef.singular)} يليه قائمة كتبه</span>
+        </button>
+      </div>
+    </div>`;
+  openModal(html, {
+    onMount: (overlay) => {
+      overlay.querySelector('#dxClose').addEventListener('click', closeModal);
+      overlay.querySelector('#dxSummary').addEventListener('click', () => { closeModal(); onSummary(); });
+      overlay.querySelector('#dxGrouped').addEventListener('click', () => { closeModal(); onGrouped(); });
+    },
+  });
+}
+
+/** Exports a dimension grouped: each value as a header, its books beneath it. */
+function exportDimensionGroupedPdf(dim, dimDef) {
+  const index = RAFF_STATE.reportIndex;
+  const map = index[dim];
+  if (!map || !map.size) { toast('لا توجد بيانات للتصدير', 'error'); return; }
+
+  const columns = [
+    { label: 'العنوان', align: 'start' },
+    { label: 'الرقم المرجعي', align: 'center' },
+    { label: 'المؤلف', align: 'start' },
+    { label: 'سنة النشر', align: 'center' },
+    { label: 'النسخ', align: 'center' },
+    { label: 'الحالة', align: 'center' },
+  ];
+
+  // Sort values by number of books (desc), then name.
+  const entries = [...map.entries()]
+    .map(([value, items]) => [value, dim === 'borrower' ? items.map((x) => x.book) : items])
+    .sort((a, b) => b[1].length - a[1].length || String(a[0]).localeCompare(String(b[0]), 'ar'));
+
+  const groups = entries.map(([value, books]) => {
+    // De-duplicate (a borrower may hold several loans of one book).
+    const seen = new Set();
+    const uniqueBooks = books.filter((bk) => { if (seen.has(bk.id)) return false; seen.add(bk.id); return true; });
+    return {
+      title: value || `— بدون ${dimDef.singular} —`,
+      meta: `${uniqueBooks.length} كتاب`,
+      rows: uniqueBooks.map((bk) => ({
+        cells: [
+          bk.title || 'بدون عنوان', bk.referenceNumber || '—', bk.author || '—',
+          bk.publishYear || '—', RaffBook.totalCopies(bk),
+          RaffBook.bookStatus(bk),
+        ],
+      })),
+    };
+  });
+
+  saveTablePdf({
+    title: `${dimDef.label} والكتب`,
+    subtitle: `${entries.length} ${dimDef.singular}`,
+    columns, groups,
+  }, `${dimDef.label}-بالكتب`);
 }
 
 /** Lets the user print/save labels for a subset (by shelf, category, series, or range). */
@@ -2103,17 +2240,22 @@ function renderReportsBody(body, root) {
       body.querySelector('#expOverdue').addEventListener('click', () => exportBorrowersPdf({ overdueOnly: true }));
     } else {
       body.querySelector('#expRank').addEventListener('click', () => {
-        const columns = [{ label: '#', align: 'center' }, ...cols.map((c) => ({ label: c.label, align: c.align }))];
-        // Build rows using the same formatter, stripped of HTML.
-        const strip = (html) => html.replace(/<[^>]+>/g, '');
-        const rows = ranked.map((r, i) => ({
-          cells: [String(i + 1), ...cols.map((c) => strip(fmt(r, c)))],
-        }));
-        saveTablePdf({
-          title: `ترتيب ${dimDef.label}`,
-          subtitle: `${ranked.length} قيمة`,
-          columns, rows,
-        }, `ترتيب-${dimDef.label}`);
+        showDimensionExportChoice(dim, dimDef, () => {
+          // Choice 1: ranking summary only.
+          const columns = [{ label: '#', align: 'center' }, ...cols.map((c) => ({ label: c.label, align: c.align }))];
+          const strip = (html) => html.replace(/<[^>]+>/g, '');
+          const rows = ranked.map((r, i) => ({
+            cells: [String(i + 1), ...cols.map((c) => strip(fmt(r, c)))],
+          }));
+          saveTablePdf({
+            title: `ترتيب ${dimDef.label}`,
+            subtitle: `${ranked.length} قيمة`,
+            columns, rows,
+          }, `ترتيب-${dimDef.label}`);
+        }, () => {
+          // Choice 2: grouped — each value with its books beneath it.
+          exportDimensionGroupedPdf(dim, dimDef);
+        });
       });
     }
 
@@ -2369,7 +2511,14 @@ function renderSettings(root) {
         <span class="hint">عند إعارة كتاب دون تحديد تاريخ إرجاع، يُحسب الاستحقاق بعد هذه المدة. تجاوز هذا التاريخ يُعدّ تأخيراً.</span>
       </div>
       <div class="loan-current-note">
-        ${icon('info', 14)} <span>مدة الإعارة الحالية: <b>${loanDays} يوماً</b>. لا يؤثر التغيير على الإعارات القائمة، بل على الجديدة فقط.</span>
+        ${icon('info', 14)} <span>مدة الإعارة الحالية: <b>${loanDays} يوماً</b>. يُطبَّق التغيير على <b>الإعارات الجديدة فقط</b> افتراضياً.</span>
+      </div>
+      <div class="loan-apply-existing">
+        <div>
+          <div class="setting-action-title">تطبيق على الإعارات القائمة</div>
+          <div class="setting-action-desc">إعادة حساب تاريخ استحقاق كل الإعارات المفتوحة (الجديدة والقديمة) بناءً على المدة الحالية</div>
+        </div>
+        <button class="btn btn-outline btn-sm" id="applyLoanExisting">${icon('refresh', 14)} تطبيق على الكل</button>
       </div>
     </div>`;
 
@@ -2527,6 +2676,19 @@ function wireSettingsHandlers(root, tab) {
       }, 500);
     });
   }
+  on('#applyLoanExisting', 'click', async () => {
+    const days = (RAFF_STATE.settings || {}).loanDurationDays || 30;
+    const ok = await confirmModal({
+      title: 'تطبيق المدة على كل الإعارات القائمة؟',
+      message: `سيُعاد حساب تاريخ الاستحقاق لكل الإعارات المفتوحة على أساس ${days} يوماً من تاريخ إعارة كل كتاب. قد يغيّر ذلك حالة بعض الإعارات (متأخر/ضمن المدة). هل تريد المتابعة؟`,
+      confirmLabel: 'نعم، طبّق على الكل',
+    });
+    if (!ok) return;
+    const res = await window.raff.applyLoanDuration(days);
+    await refreshState();
+    renderNavCounts();
+    toast(`تم تحديث ${res.updated} إعارة`, 'success');
+  });
 
   // ---- Export tab ----
   on('#exportJsonBtn', 'click', async () => { const r = await window.raff.exportJson(); if (r.ok) toast('تم حفظ النسخة الاحتياطية بنجاح', 'success'); });

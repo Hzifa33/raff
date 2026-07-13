@@ -325,9 +325,36 @@ class Store {
     };
   }
 
+  // A reference counts toward the auto-sequence only if it matches رَفّ's own
+  // canonical format exactly: "raf-" followed by digits. Imported numbers in a
+  // different shape (e.g. "RAF-TEST-1000") are foreign and must NOT push the
+  // counter forward — otherwise adding a book after such an import would skip
+  // to raf-1001 while raf-0001 sits unused.
+  _canonicalRefSeq(ref) {
+    const m = /^raf-(\d+)$/.exec((ref || '').trim().toLowerCase());
+    return m ? parseInt(m[1], 10) : null;
+  }
+
+  /** The set of canonical raf-NNNN sequence numbers currently in use. */
+  _usedCanonicalSeqs() {
+    const used = new Set();
+    for (const b of this.db.books) {
+      const n = this._canonicalRefSeq(b.referenceNumber);
+      if (n !== null) used.add(n);
+    }
+    return used;
+  }
+
+  /** Lowest free canonical sequence number, starting from 1. */
+  _lowestFreeSeq() {
+    const used = this._usedCanonicalSeqs();
+    let seq = 1;
+    while (used.has(seq)) seq += 1;
+    return seq;
+  }
+
   _nextReferenceNumber() {
-    const seq = this.db.nextRefSeq || 1;
-    this.db.nextRefSeq = seq + 1;
+    const seq = this._lowestFreeSeq();
     return 'raf-' + String(seq).padStart(4, '0');
   }
 
@@ -336,8 +363,7 @@ class Store {
    * the sequence. Used to preview the number in the add form as the user types.
    */
   peekNextReferenceNumber() {
-    const seq = this.db.nextRefSeq || 1;
-    return 'raf-' + String(seq).padStart(4, '0');
+    return 'raf-' + String(this._lowestFreeSeq()).padStart(4, '0');
   }
 
   addBook(book, { keepReferenceNumber = false, defer = false } = {}) {
@@ -353,9 +379,6 @@ class Store {
         return { ok: false, error: 'الرقم المرجعي مستخدم بالفعل' };
       }
       referenceNumber = requested;
-      // Keep the auto-sequence ahead of any manually chosen number.
-      const m = /(\d+)\s*$/.exec(requested);
-      if (m) this.db.nextRefSeq = Math.max(this.db.nextRefSeq || 1, parseInt(m[1], 10) + 1);
     } else {
       referenceNumber = this._nextReferenceNumber();
     }
@@ -861,6 +884,28 @@ class Store {
    * details, sorted with overdue loans first (then by how late they are).
    * Used by the loans view and the borrower PDF exports.
    */
+  /**
+   * Recomputes the due date of every currently-open loan as borrowedAt + days.
+   * Used when the librarian chooses to apply a new loan period retroactively.
+   * Returns how many loans were updated.
+   */
+  applyLoanDurationToOpenLoans(days) {
+    const d = Math.max(1, Math.min(3650, Math.floor(Number(days) || 30)));
+    let updated = 0;
+    for (const b of this.db.books) {
+      let touched = false;
+      for (const l of b.loans || []) {
+        if (l.returnedAt) continue;
+        const start = Date.parse(l.borrowedAt) || Date.now();
+        l.dueAt = new Date(start + d * 86400000).toISOString();
+        updated += 1; touched = true;
+      }
+      if (touched) b.updatedAt = nowIso();
+    }
+    if (updated) this._save();
+    return { updated };
+  }
+
   getActiveLoans({ overdueOnly = false } = {}) {
     const now = Date.now();
     const out = [];

@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('raff', {
   getSettings: () => ipcRenderer.invoke('lib:getSettings'),
   updateSettings: (patch) => ipcRenderer.invoke('lib:updateSettings', patch),
   getActiveLoans: (opts) => ipcRenderer.invoke('lib:getActiveLoans', opts),
+  applyLoanDuration: (days) => ipcRenderer.invoke('lib:applyLoanDuration', days),
   saveTablePdf: (html, fileHint) => ipcRenderer.invoke('lib:saveTablePdf', html, fileHint),
   peekNextRef: () => ipcRenderer.invoke('lib:peekNextRef'),
 

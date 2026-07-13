@@ -71,6 +71,7 @@ app.whenReady().then(() => {
   ipcMain.handle('lib:getSettings', () => store.getSettings());
   ipcMain.handle('lib:updateSettings', (_e, patch) => store.updateSettings(patch));
   ipcMain.handle('lib:getActiveLoans', (_e, opts) => store.getActiveLoans(opts || {}));
+  ipcMain.handle('lib:applyLoanDuration', (_e, days) => store.applyLoanDurationToOpenLoans(days));
   ipcMain.handle('lib:peekNextRef', () => store.peekNextReferenceNumber());
 
   // ---- IPC: Backup / restore ----

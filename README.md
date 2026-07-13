@@ -92,7 +92,7 @@
 
 **<img src="https://icongr.am/feather/gift.svg?size=48&color=b0894b" width="16" align="center" alt=""> الجديد في الإصدار 1.0.0**
 
-نظام باركود ومسح ضوئي متكامل · طباعة الملصقات أو حفظها **PDF** · ملصقات بهوية المؤسسة مضبوطة على **A4** · أعمدة السجل **قابلة لتغيير العرض** · الترتيب حسب **تاريخ الإضافة**
+نظام باركود ومسح ضوئي متكامل · طباعة الملصقات أو حفظها **PDF** مباشرة من نافذة الكتاب · ملصقات بهوية المؤسسة على **A4** · **مدة إعارة قابلة للضبط** · تصدير **المستعيرين والتصنيفات مجمّعاً** · أعمدة السجل **قابلة لتغيير العرض** والترتيب حسب **تاريخ الإضافة** · ترقيم مرجعي ذكي يملأ الفجوات
 
 </td></tr>
 </table>
@@ -121,7 +121,7 @@
 ### <img src="https://icongr.am/feather/bookmark.svg?size=54&color=b0894b" width="18" align="center" alt=""> الأرقام المرجعية
 
 <table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/tag.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>رقم تلقائي</b></td><td valign="middle">يُنشأ لكل كتاب لتسهيل ترتيبه على الرف.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/tag.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>ترقيم ذكي يبدأ من raf-0001</b></td><td valign="middle">يُنشأ رقم <code>raf-NNNN</code> لكل كتاب، ويبدأ دائماً من أول رقم متاح <b>ويملأ الفجوات</b>، ولا تُربكه أرقام مستوردة بصيغ غريبة (مثل RAF-TEST-1000).</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/edit-2.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>تعديل مرن ومحمي</b></td><td valign="middle">يمكن تعديل الرقم بعد الإضافة ومن نافذة التفاصيل، مع <b>حماية من التكرار</b> عند التعديل والاستيراد.</td></tr>
 </table>
 
@@ -132,6 +132,7 @@
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/maximize.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>قارئ آلي من أي شاشة</b></td><td valign="middle">قارئ الباركود USB يعمل تلقائيًا من أي مكان في البرنامج (يعمل كلوحة مفاتيح)، ويميّز المسح عن الكتابة اليدوية بذكاء.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/file-text.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>صفحة بيانات فورية</b></td><td valign="middle">بمجرد المسح تظهر <b>صفحة الكتاب كاملة</b>: العنوان، المؤلف، السعر، الرف، الأجزاء، الإتاحة، والإعارات المفتوحة.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/printer.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>طباعة أو حفظ PDF</b></td><td valign="middle">اطبع الملصقات مباشرة أو <b>احفظها ملف PDF</b> — ملصق مفرد، أو ورقة لكل المكتبة، أو حسب رف/مجال/سلسلة، أو <b>حسب نطاق رقمي</b> (مثل raf-0001 إلى raf-0100).</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/file-text.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>طباعة فورية من نافذة الكتاب</b></td><td valign="middle">زر <b>طباعة الملصق</b> و<b>حفظ PDF</b> مباشرة من نافذة تفاصيل أي كتاب، ومن النافذة التي تظهر بعد إضافة كتاب — بنفس الحجم والتفاصيل المضبوطة في الإعدادات.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/award.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>هوية المؤسسة على الملصق</b></td><td valign="middle"><b>شعار واسم المكتبة</b> على كل ملصق بإطار أنيق، مع معلومات دقيقة شبه خفية (microtext). ويتكيّف التصميم تلقائيًا: إن لم يوجد شعار أو اسم، يكبر الباركود ليملأ المساحة بلا فراغ.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/layout.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>مضبوط على ورق A4</b></td><td valign="middle">أبعاد الملصق مضبوطة بالمليمتر على ورق <b>A4</b>، بحجم صغير مثالي للصقه خلف الكتاب دون حجب بياناته، وعدد أعمدة قابل للضبط (3/4/5).</td></tr>
 </table>
@@ -140,9 +141,9 @@
 
 <table>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/book.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>إعارة مرنة</b></td><td valign="middle">نسخة <b>كاملة</b> أو <b>جزء محدد برقمه</b> للكتب متعددة الأجزاء، وتُحسب الإتاحة لكل جزء على حدة.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/calendar.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>موعد إرجاع تلقائي</b></td><td valign="middle">بعد 30 يومًا، قابل للتعديل عند الإعارة.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/calendar.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>مدة إعارة قابلة للضبط</b></td><td valign="middle">حدّد مدة الإعارة الافتراضية (7/14/30/60/90 أو مخصّصة)؛ يُحسب الاستحقاق تلقائياً وتجاوزه يُعدّ تأخيراً. يمكن <b>تطبيق المدة الجديدة على الإعارات القائمة أيضاً</b> أو على الجديدة فقط.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/phone.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>بيانات المستعير</b></td><td valign="middle">وسيلة تواصل للمستعير وملاحظة قصيرة لكل إعارة.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/bell.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>تنبيهات ذكية</b></td><td valign="middle">«متأخر» و«يستحق خلال N يوم»، مع <b>تصدير CSV للإعارات المتأخرة فقط</b>.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/bell.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>تنبيهات وترتيب ذكي</b></td><td valign="middle">«متأخر» و«يستحق خلال N يوم»، مع <b>ظهور المتأخرين أولاً</b> في القوائم والتصدير.</td></tr>
 </table>
 
 ### <img src="https://icongr.am/feather/bar-chart-2.svg?size=54&color=b0894b" width="18" align="center" alt=""> لوحة المعلومات والتقارير
@@ -150,6 +151,7 @@
 <table>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/trending-up.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>لوحة معلومات ذكية</b></td><td valign="middle">الإعارات المتأخرة، المستحقة خلال 7 أيام، نسبة اكتمال بيانات الجرد، قيمة الكتب المسعّرة، أعلى كتاب سعرًا، وعدد العناوين متعددة الأجزاء.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/compass.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>استدعاءات قابلة للفرز</b></td><td valign="middle">حسب أي عمود، عبر ثمانية أبعاد: المستعيرون، دور النشر، المؤلفون، المجالات، سنوات النشر، <b>الرفوف، السلاسل، وحالة النسخ</b>.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/download.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>تصدير PDF مجمّع</b></td><td valign="middle"><b>المستعيرون</b>: كل اسم يليه كتبه بحوزته. و<b>أي تصنيف</b> (دار نشر، مؤلف…): إمّا جدول ترتيب فقط أو <b>مجمّعاً مع كتب كل قيمة</b> — الخيار لك.</td></tr>
 </table>
 
 ### <img src="https://icongr.am/feather/shield.svg?size=54&color=b0894b" width="18" align="center" alt=""> التخزين والأمان
@@ -164,7 +166,7 @@
 ### <img src="https://icongr.am/feather/upload.svg?size=54&color=b0894b" width="18" align="center" alt=""> التصدير · <img src="https://icongr.am/feather/lock.svg?size=54&color=b0894b" width="18" align="center" alt=""> الخصوصية
 
 <table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/upload.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>صيغ متعددة</b></td><td valign="middle">تصدير المكتبة إلى <b>JSON، CSV، TXT، وPDF</b>، بالإضافة إلى CSV للمتأخرات.</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/upload.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>صيغ متعددة</b></td><td valign="middle">تصدير المكتبة إلى <b>JSON، CSV، TXT، وPDF</b>، وتصدير <b>المستعيرين</b> و<b>المتأخرين فقط</b> كملفات PDF، بالإضافة إلى CSV للمتأخرات.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/lock.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>خصوصية كاملة</b></td><td valign="middle">يعمل محليًا ولا يرسل بيانات مكتبتك إلى أي خادم خارجي، وبلا تتبّع أو إعلانات.</td></tr>
 </table>
 
@@ -193,7 +195,7 @@
 رَفّ خفيف ولا يحتاج جهازًا قويًا؛ يعمل بسلاسة على أجهزة المكاتب العادية.
 
 <table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/monitor.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>نظام التشغيل</b></td><td valign="middle"><b>Windows 10</b> أو أحدث (64-بت).</td></tr>
+<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/monitor.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>نظام التشغيل</b></td><td valign="middle"><b>Windows 10</b> أو أحدث (64-بت). تتوفّر أيضًا نسخة <b>Linux</b> بصيغة AppImage.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/cpu.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>المعالج والذاكرة</b></td><td valign="middle">أي معالج 64-بت حديث، و<b>2 جيجابايت RAM</b> على الأقل (يُفضّل 4 جيجابايت للمكتبات الكبيرة).</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/hard-drive.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>مساحة القرص</b></td><td valign="middle">نحو <b>250 ميجابايت</b> للبرنامج، إضافة إلى مساحة صغيرة تنمو ببطء مع بيانات المكتبة والنسخ الاحتياطية.</td></tr>
 <tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/wifi-off.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>الإنترنت</b></td><td valign="middle"><b>غير مطلوب إطلاقًا.</b> كل الميزات — بما فيها توليد الباركود والطباعة — تعمل بلا اتصال.</td></tr>
@@ -209,11 +211,7 @@
 
 <br>
 
-استخدم قيمة **SHA256** التالية للتحقق من أن الملف الذي حمّلته هو نفس الملف المنشور رسميًا:
-
-```text
-43965120e4b1d9653b3146b44584f61869b990fab6ba27f8d04fce5cbdfd64c6
-```
+بعد بناء نسخة **1.0.0**، احسب قيمة **SHA256** لملف الإصدار وضعها هنا لينشرها المستخدمون ويتحققوا بها من سلامة الملف. تتغيّر هذه القيمة مع كل إصدار جديد، لذا احرص على تحديثها قبل النشر.
 
 للتحقق على **Windows PowerShell**، افتح PowerShell داخل مجلد التحميل ونفّذ:
 
