@@ -5,6 +5,12 @@
 
 <div align="center" dir="rtl">
 
+<p><strong>بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ</strong></p>
+
+<p><em>والصلاة والسلام على رسول الله</em></p>
+
+<br>
+
 <img src="assets/icon.png" alt="شعار رَفّ" width="130">
 
 <h1>رَفٌّ</h1>
