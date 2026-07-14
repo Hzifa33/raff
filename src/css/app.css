@@ -154,11 +154,7 @@ input, select, textarea { font-family: inherit; }
 /* ---- Sidebar ---- */
 .sidebar {
   position: relative;
-  background:
-    linear-gradient(180deg, rgba(28,18,11,0.94), rgba(28,18,11,0.97)),
-    url('../../assets/background.jpg');
-  background-size: cover;
-  background-position: center;
+  background: var(--bg-sidebar);
   color: var(--text-onDark);
   display: flex;
   flex-direction: column;

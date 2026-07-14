@@ -65,6 +65,7 @@ app.whenReady().then(() => {
   ipcMain.handle('lib:restore', (_e, book) => store.restoreBook(book));
   ipcMain.handle('lib:borrow', (_e, bookId, payload) => store.borrowCopy(bookId, payload));
   ipcMain.handle('lib:return', (_e, bookId, loanId, returnedAt) => store.returnLoan(bookId, loanId, returnedAt));
+  ipcMain.handle('lib:returnParts', (_e, bookId, loanId, volumes, returnedAt) => store.returnLoanParts(bookId, loanId, volumes, returnedAt));
   ipcMain.handle('lib:setRef', (_e, id, ref) => store.setReferenceNumber(id, ref));
   ipcMain.handle('lib:stats', () => store.getStats());
   ipcMain.handle('lib:meta', () => store.getMeta());
@@ -239,6 +240,14 @@ app.whenReady().then(() => {
   ipcMain.handle('lib:integrity', () => {
     try {
       return { ok: true, report: store.integrityCheck() };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('lib:repairIntegrity', () => {
+    try {
+      return { ok: true, result: store.repairIntegrity() };
     } catch (err) {
       return { ok: false, error: err.message };
     }

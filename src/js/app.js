@@ -4,7 +4,7 @@ const ROUTES = {
   dashboard: { title: 'لوحة المعلومات', subtitle: 'نظرة عامة على مكتبتك', render: (root) => renderDashboard(root) },
   search: { title: 'البحث المتقدم', subtitle: 'بحث استكشافي حي ببطاقات — للعثور السريع على كتاب', render: (root, ctx) => renderBookBrowser(root, ctx) },
   add: { title: 'إضافة كتاب جديد', subtitle: 'سجّل بيانات كتاب جديد في المكتبة', render: (root) => renderAddForm(root, null) },
-  library: { title: 'السجل الكامل', subtitle: 'جدول قابل للفرز بكل أعمدة المكتبة', render: (root) => {
+  library: { title: 'السجل الكامل', subtitle: 'عرض منظم قابل للفرز، بما في ذلك وقت الإضافة', render: (root) => {
     const quick = document.getElementById('quickSearchInput');
     if (quick) quick.value = '';
     renderLibraryTable(root);
@@ -19,7 +19,160 @@ const ROUTES = {
 let currentRoute = 'dashboard';
 let currentCtx = {};
 
+/* =========================================================
+   Visual preferences: light/dark mode + collapsible sidebar
+   ========================================================= */
+const UI_PREFS = {
+  theme: 'raff.theme',
+  sidebar: 'raff.sidebarCollapsed',
+};
+
+function currentTheme() {
+  return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+}
+
+function applyTheme(theme, { persist = true } = {}) {
+  const next = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  if (persist) {
+    try { localStorage.setItem(UI_PREFS.theme, next); } catch (_) {}
+  }
+
+  const nextLabel = next === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي';
+  [document.getElementById('topbarThemeToggle')]
+    .filter(Boolean)
+    .forEach((btn) => {
+      btn.title = `التبديل إلى ${nextLabel}`;
+      btn.setAttribute('aria-label', `التبديل إلى ${nextLabel}`);
+      btn.setAttribute('aria-pressed', String(next === 'dark'));
+    });
+}
+
+function toggleTheme() {
+  applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+}
+
+function sidebarIsCollapsed() {
+  return document.body.classList.contains('sidebar-collapsed');
+}
+
+function applySidebarState(collapsed, { persist = true } = {}) {
+  document.documentElement.classList.remove('sidebar-precollapsed');
+  document.body.classList.toggle('sidebar-collapsed', !!collapsed);
+  document.body.classList.toggle('sidebar-expanded', !collapsed);
+  hideSidebarTooltip();
+  if (persist) {
+    try { localStorage.setItem(UI_PREFS.sidebar, String(!!collapsed)); } catch (_) {}
+  }
+
+  const label = collapsed ? 'فتح القائمة الجانبية' : 'طي القائمة الجانبية';
+  const rail = document.getElementById('sidebarToggle');
+  if (rail) {
+    rail.title = label;
+    rail.setAttribute('aria-label', label);
+    rail.setAttribute('aria-expanded', String(!collapsed));
+  }
+  const topRail = document.getElementById('topbarSidebarToggle');
+  if (topRail) {
+    topRail.title = label;
+    topRail.setAttribute('aria-label', label);
+    topRail.setAttribute('aria-expanded', String(!collapsed));
+  }
+}
+
+function toggleSidebar() {
+  applySidebarState(!sidebarIsCollapsed());
+}
+
+let _sidebarTooltip = null;
+let _sidebarTooltipTarget = null;
+
+function ensureSidebarTooltip() {
+  if (_sidebarTooltip) return _sidebarTooltip;
+  const el = document.createElement('div');
+  el.className = 'sidebar-tooltip';
+  el.setAttribute('role', 'tooltip');
+  el.hidden = true;
+  document.body.appendChild(el);
+  _sidebarTooltip = el;
+  return el;
+}
+
+function hideSidebarTooltip() {
+  if (!_sidebarTooltip) return;
+  _sidebarTooltip.hidden = true;
+  _sidebarTooltip.classList.remove('is-visible');
+  _sidebarTooltipTarget = null;
+}
+
+function showSidebarTooltip(target) {
+  if (!sidebarIsCollapsed() || !target) return;
+  const label = target.dataset.tooltip || target.getAttribute('aria-label') || '';
+  if (!label) return;
+
+  const tip = ensureSidebarTooltip();
+  tip.textContent = label;
+  tip.hidden = false;
+  tip.classList.add('is-visible');
+  _sidebarTooltipTarget = target;
+
+  const rect = target.getBoundingClientRect();
+  const tipRect = tip.getBoundingClientRect();
+  const gap = 10;
+  const left = Math.max(8, rect.left - tipRect.width - gap);
+  const top = Math.min(
+    window.innerHeight - tipRect.height - 8,
+    Math.max(8, rect.top + (rect.height - tipRect.height) / 2)
+  );
+  tip.style.left = `${Math.round(left)}px`;
+  tip.style.top = `${Math.round(top)}px`;
+}
+
+function initSidebarTooltips() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+
+  sidebar.querySelectorAll('.nav-item, .credit-link').forEach((el) => {
+    const label = el.getAttribute('title') || el.getAttribute('aria-label') || '';
+    if (label) el.dataset.tooltip = label;
+    // Native title bubbles are clipped by the application rail and may appear
+    // at inconsistent positions. The dedicated tooltip below is accessible,
+    // immediate and always rendered outside the clipped shell.
+    el.removeAttribute('title');
+  });
+
+  sidebar.addEventListener('pointerover', (event) => {
+    const target = event.target.closest('.nav-item, .credit-link');
+    if (target && target !== _sidebarTooltipTarget) showSidebarTooltip(target);
+  });
+  sidebar.addEventListener('pointerout', (event) => {
+    const target = event.target.closest('.nav-item, .credit-link');
+    if (!target) return;
+    if (!event.relatedTarget || !target.contains(event.relatedTarget)) hideSidebarTooltip();
+  });
+  sidebar.addEventListener('focusin', (event) => {
+    const target = event.target.closest('.nav-item, .credit-link');
+    if (target) showSidebarTooltip(target);
+  });
+  sidebar.addEventListener('focusout', hideSidebarTooltip);
+  sidebar.addEventListener('scroll', hideSidebarTooltip, { passive: true });
+  window.addEventListener('resize', hideSidebarTooltip, { passive: true });
+}
+
+function initAppearanceControls() {
+  let savedCollapsed = false;
+  try { savedCollapsed = localStorage.getItem(UI_PREFS.sidebar) === 'true'; } catch (_) {}
+  applyTheme(currentTheme(), { persist: false });
+  applySidebarState(savedCollapsed, { persist: false });
+
+  document.getElementById('topbarThemeToggle')?.addEventListener('click', toggleTheme);
+  document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+  document.getElementById('topbarSidebarToggle')?.addEventListener('click', toggleSidebar);
+  initSidebarTooltips();
+}
+
 function navigateTo(route, ctx = {}) {
+  hideSidebarTooltip();
   currentRoute = route;
   currentCtx = ctx;
   renderRoute();
@@ -32,12 +185,19 @@ function renderRoute() {
 
   document.querySelectorAll('.nav-item').forEach((el) => {
     const navRoute = el.dataset.route;
-    el.classList.toggle('active', navRoute === currentRoute || (navRoute === 'library' && currentRoute === 'edit'));
+    const active = navRoute === currentRoute || (navRoute === 'library' && currentRoute === 'edit');
+    el.classList.toggle('active', active);
+    if (active) el.setAttribute('aria-current', 'page');
+    else el.removeAttribute('aria-current');
   });
 
   const root = document.getElementById('viewRoot');
+  root.classList.remove('view-enter');
   def.render(root, currentCtx);
   root.scrollTop = 0;
+  // Restart the subtle route transition without delaying interaction.
+  void root.offsetWidth;
+  root.classList.add('view-enter');
 }
 
 function renderNavCounts() {
@@ -157,6 +317,17 @@ document.getElementById('devCreditLink').addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   const quick = document.getElementById('quickSearchInput');
 
+  // Familiar desktop shortcuts: Ctrl+B toggles the rail; Ctrl+Shift+L toggles appearance.
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'b') {
+    e.preventDefault();
+    toggleSidebar();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
+    e.preventDefault();
+    toggleTheme();
+    return;
+  }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
     quick.focus();
@@ -212,13 +383,29 @@ document.addEventListener('keydown', (e) => {
 
 /* ---- Init ---- */
 /**
- * Finds a book by exact reference number (case-insensitive, trimmed). Returns
- * the book or null. Used by the barcode scanner and manual lookup.
+ * Full-reference identity used by scanner/manual lookup. It cleans harmless
+ * formatting differences but never compares a suffix, so raf-0001 and
+ * raf-1001 remain different books.
  */
+function referenceLookupIdentity(value) {
+  const cleaned = (value ?? '').toString()
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g, '')
+    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-')
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0))
+    .trim()
+    .replace(/\s*-\s*/g, '-')
+    .replace(/\s+/g, ' ');
+  const canonical = /^raf-(\d+)$/i.exec(cleaned);
+  if (canonical) return 'raff:' + canonical[1].replace(/^0+(?=\d)/, '');
+  return cleaned ? 'custom:' + cleaned.toLocaleLowerCase('en-US') : '';
+}
+
 function findBookByReference(ref) {
-  if (!ref) return null;
-  const needle = ref.trim().toLowerCase();
-  return RAFF_STATE.books.find((b) => (b.referenceNumber || '').trim().toLowerCase() === needle) || null;
+  const needle = referenceLookupIdentity(ref);
+  if (!needle) return null;
+  return RAFF_STATE.books.find((b) => referenceLookupIdentity(b.referenceNumber) === needle) || null;
 }
 
 /**
@@ -243,6 +430,7 @@ function handleScannedCode(code) {
 let _lastScannedId = null;
 
 (async function init() {
+  initAppearanceControls();
   await refreshState();
   renderNavCounts();
   renderRoute();

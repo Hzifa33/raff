@@ -71,7 +71,7 @@ function renderBookRow(book) {
 /**
  * Confirms, deletes, then offers a real undo. Deleting a catalogued book is
  * destructive and easy to do by mistake, so the record is kept in memory and
- * restored verbatim (same id and reference number) if the user undoes.
+ * restored with the same identity when possible; if that reference was reused in the meantime, the store assigns the next safe number.
  */
 async function deleteBookWithUndo(book) {
   const ok = await confirmModal({
@@ -122,7 +122,12 @@ function showBookDetails(bookId) {
     .some((v) => RaffBook.canBorrowVolume(book, v));
   const canBorrowAny = canBorrowFull || anyVolumeFree;
   const today = new Date().toISOString().slice(0, 10);
-  const dueDefault = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const configuredLoanDays = Number(RAFF_STATE.settings?.loanDurationDays) || 30;
+  const dueDefault = new Date(Date.now() + configuredLoanDays * 86400000).toISOString().slice(0, 10);
+  const defaultBorrowScope = canBorrowFull ? 'full' : 'volume';
+  const firstAvailableVolume = multi
+    ? Array.from({ length: volCount }, (_, i) => i + 1).find((v) => RaffBook.canBorrowVolume(book, v))
+    : null;
 
   const loanRow = (l) => {
     const days = RaffBook.loanDurationDays(l);
@@ -131,6 +136,12 @@ function showBookDetails(bookId) {
     const scope = RaffBook.loanScopeLabel(l);
     const isVol = RaffBook.isVolumeLoan(l);
     const dLeft = RaffBook.daysUntilDue(l);
+    const allParts = RaffBook.loanAllVolumes(l, book);
+    const outstandingParts = RaffBook.outstandingLoanVolumes(l, book);
+    const returnedParts = RaffBook.returnedLoanVolumes(l, book);
+    const returnedSet = new Set(returnedParts);
+    const canReturnSpecificPart = multi && !l.returnedAt && outstandingParts.length > 1;
+    const partiallyReturned = !l.returnedAt && returnedParts.length > 0 && outstandingParts.length > 0;
     let dueBadge = '';
     if (!l.returnedAt) {
       if (overdue) dueBadge = `<span class="due-badge over">متأخر ${dLeft !== null ? Math.abs(dLeft) + ' يوم' : ''}</span>`;
@@ -140,8 +151,53 @@ function showBookDetails(bookId) {
     const extra = (l.contact || l.note)
       ? `<div class="loan-extra">${l.contact ? `<span class="loan-contact">${icon('user', 11)} ${escapeHtml(l.contact)}</span>` : ''}${l.note ? `<span class="loan-note">${escapeHtml(l.note)}</span>` : ''}</div>`
       : '';
+
+    const partsStatus = multi ? `
+      <div class="loan-parts-status" aria-label="حالة أجزاء الإعارة">
+        ${allParts.map((v) => {
+          const wasReturned = returnedSet.has(v) || !!l.returnedAt;
+          const returnedOn = RaffBook.volumeReturnDate(l, v) || (l.returnedAt ? l.returnedAt : null);
+          const title = wasReturned
+            ? `الجزء ${v} — أُرجع${returnedOn ? ` في ${reportFormatDate(returnedOn)}` : ''}`
+            : `الجزء ${v} — ما زال معاراً`;
+          return `<span class="loan-part-chip ${wasReturned ? 'is-returned' : 'is-open'}" title="${escapeHtml(title)}">ج${v}${wasReturned ? icon('check', 10) : ''}</span>`;
+        }).join('')}
+        ${partiallyReturned ? `<span class="loan-remaining-label">المتبقي: ${escapeHtml(RaffBook.outstandingScopeLabel(l, book))}</span>` : ''}
+      </div>` : '';
+
+    const actionHtml = l.returnedAt
+      ? `<span class="loan-state returned">أُرجع</span>`
+      : canReturnSpecificPart
+        ? `<div class="loan-return-actions">
+            <button class="btn btn-outline btn-sm" data-toggle-return-parts="${l.id}">${icon('layers', 13)} إرجاع جزء</button>
+            <button class="btn btn-ghost btn-sm" data-return-loan="${l.id}">${icon('refresh', 13)} إرجاع الكل</button>
+          </div>`
+        : `<button class="btn btn-outline btn-sm" data-return-loan="${l.id}">${icon('refresh')} إرجاع</button>`;
+
+    const returnPicker = canReturnSpecificPart ? `
+      <div class="loan-return-picker hidden" data-return-picker="${l.id}">
+        <div class="loan-return-picker-head">
+          <div>
+            <b>إرجاع جزء محدد</b>
+            <small>حدد جزءاً واحداً أو عدة أجزاء عادت الآن، وستبقى بقية الأجزاء معارة.</small>
+          </div>
+          <button class="btn btn-ghost btn-icon btn-sm" data-cancel-return-parts="${l.id}" aria-label="إغلاق">${icon('x', 13)}</button>
+        </div>
+        <div class="loan-return-grid" role="group" aria-label="الأجزاء المراد إرجاعها">
+          ${outstandingParts.map((v) => `<label class="loan-return-option">
+            <input type="checkbox" name="returnVolume-${l.id}" value="${v}" />
+            <span class="loan-return-check">${icon('check', 11)}</span>
+            <span>الجزء ${v}</span>
+          </label>`).join('')}
+        </div>
+        <div class="loan-return-picker-actions">
+          <button class="btn btn-primary btn-sm" data-confirm-return-parts="${l.id}">${icon('check', 13)} تسجيل إرجاع المحدد</button>
+          <button class="btn btn-ghost btn-sm" data-cancel-return-parts="${l.id}">إلغاء</button>
+        </div>
+      </div>` : '';
+
     return `
-      <div class="loan-row ${l.returnedAt ? 'is-returned' : overdue ? 'is-overdue' : dueSoon ? 'is-duesoon' : ''}">
+      <div class="loan-row ${l.returnedAt ? 'is-returned' : partiallyReturned ? 'is-partial-return' : overdue ? 'is-overdue' : dueSoon ? 'is-duesoon' : ''}" data-loan-row="${l.id}">
         <div class="loan-main">
           <div class="loan-who">
             <span class="loan-name">${escapeHtml(l.borrowerName)}
@@ -150,10 +206,10 @@ function showBookDetails(bookId) {
             <span class="loan-dates">${reportFormatDate(l.borrowedAt)}${l.returnedAt ? ` ← ${reportFormatDate(l.returnedAt)}` : ''} ${dueBadge}</span>
           </div>
           <span class="loan-days ${overdue ? 'overdue' : ''}">${days} يوم</span>
-          ${l.returnedAt
-            ? `<span class="loan-state returned">أُرجع</span>`
-            : `<button class="btn btn-outline btn-sm" data-return-loan="${l.id}">${icon('refresh')} إرجاع</button>`}
+          ${actionHtml}
         </div>
+        ${partsStatus}
+        ${returnPicker}
         ${extra}
       </div>`;
   };
@@ -221,12 +277,16 @@ function showBookDetails(bookId) {
 
         ${book.notes ? `<div class="detail-notes"><p>${escapeHtml(book.notes)}</p></div>` : ''}
 
-        <div class="form-actions detail-actions">
-          <button class="btn btn-outline btn-sm" id="detailEdit">${icon('edit')} تعديل</button>
-          <button class="btn btn-outline btn-sm" id="detailPrintLabel">${icon('printer')} طباعة الملصق</button>
-          <button class="btn btn-outline btn-sm" id="detailPdfLabel">${icon('download')} حفظ PDF</button>
-          <button class="btn btn-outline btn-sm" id="detailCopyRef">${icon('hash')} نسخ الرقم</button>
-          <button class="btn btn-danger btn-sm" id="detailDelete">${icon('trash')} حذف</button>
+        <div class="detail-actions" aria-label="إجراءات الكتاب">
+          <div class="detail-actions-primary">
+            <button class="btn btn-outline btn-sm" id="detailEdit">${icon('edit')} تعديل</button>
+            <button class="btn btn-outline btn-sm" id="detailPrintLabel">${icon('printer')} طباعة الملصق</button>
+            <button class="btn btn-outline btn-sm" id="detailPdfLabel">${icon('download')} حفظ PDF</button>
+            <button class="btn btn-outline btn-sm" id="detailCopyRef">${icon('hash')} نسخ الرقم</button>
+          </div>
+          <div class="detail-actions-danger">
+            <button class="btn btn-danger btn-sm" id="detailDelete">${icon('trash')} حذف الكتاب</button>
+          </div>
         </div>
       </div>
 
@@ -241,17 +301,32 @@ function showBookDetails(bookId) {
             <input type="text" id="borrowName" placeholder="اسم المستعير" ${canBorrowAny ? '' : 'disabled'} />
           </div>
           ${multi ? `
-          <div class="borrow-scope-row">
-            <div class="chip-toggle borrow-scope" id="borrowScope">
-              <button type="button" data-scope="full" class="active" ${canBorrowFull ? '' : 'disabled'}>مجموعة كاملة</button>
-              <button type="button" data-scope="volume">جزء محدد</button>
+          <div class="borrow-scope-block">
+            <span class="borrow-field-label borrow-scope-label">ما الذي سيستعيره؟</span>
+            <div class="borrow-scope-row">
+              <div class="chip-toggle borrow-scope" id="borrowScope">
+                <button type="button" data-scope="full" class="${defaultBorrowScope === 'full' ? 'active' : ''}" ${canBorrowFull ? '' : 'disabled'}>المجموعة كاملة</button>
+                <button type="button" data-scope="volume" class="${defaultBorrowScope === 'volume' ? 'active' : ''}" ${anyVolumeFree ? '' : 'disabled'}>جزء أو عدة أجزاء</button>
+              </div>
             </div>
-            <select id="borrowVolume" class="borrow-volume hidden">
-              ${Array.from({ length: volCount }, (_, i) => i + 1).map((v) => {
-                const va = RaffBook.availableOfVolume(book, v);
-                return `<option value="${v}" ${va === 0 ? 'disabled' : ''}>الجزء ${v}${va === 0 ? ' (غير متاح)' : ` (${va})`}</option>`;
-              }).join('')}
-            </select>
+            <div id="borrowVolumes" class="borrow-volumes ${defaultBorrowScope === 'volume' ? '' : 'hidden'}">
+              <div class="borrow-volumes-toolbar">
+                <span id="borrowVolumeSummary" class="borrow-volumes-summary">اختر جزءًا واحدًا أو أكثر</span>
+                <button type="button" class="btn btn-ghost btn-sm borrow-select-all" id="borrowSelectAll">تحديد كل المتاح</button>
+              </div>
+              <div class="borrow-volume-grid" role="group" aria-label="الأجزاء المستعارة">
+                ${Array.from({ length: volCount }, (_, i) => i + 1).map((v) => {
+                  const va = RaffBook.availableOfVolume(book, v);
+                  const checked = defaultBorrowScope === 'volume' && v === firstAvailableVolume ? 'checked' : '';
+                  return `<label class="borrow-volume-option ${va === 0 ? 'is-unavailable' : ''}">
+                    <input type="checkbox" name="borrowVolume" value="${v}" ${va === 0 ? 'disabled' : ''} ${checked} />
+                    <span class="borrow-volume-check" aria-hidden="true">${icon('check', 12)}</span>
+                    <span class="borrow-volume-copy"><b>الجزء ${v}</b><small>${va === 0 ? 'غير متاح' : `${va} متاح`}</small></span>
+                  </label>`;
+                }).join('')}
+              </div>
+            </div>
+            <span class="borrow-volume-hint">يمكن تحديد عدة أجزاء في إعارة واحدة، ويظل كل جزء غير محدد متاحًا بصورة مستقلة.</span>
           </div>` : ''}
           <div class="borrow-dates-row">
             <label class="borrow-field">
@@ -328,17 +403,45 @@ function showBookDetails(bookId) {
         nameInput.focus();
       }
 
-      // Scope toggle (multi-volume only): switch between whole-set and single volume.
-      let borrowScope = 'full';
+      // Scope toggle (multi-volume only): whole set or one/more selected parts.
+      let borrowScope = defaultBorrowScope;
       const scopeToggle = overlay.querySelector('#borrowScope');
-      const volumeSelect = overlay.querySelector('#borrowVolume');
+      const volumePicker = overlay.querySelector('#borrowVolumes');
+      const volumeSummary = overlay.querySelector('#borrowVolumeSummary');
+      const selectAllBtn = overlay.querySelector('#borrowSelectAll');
+      const volumeInputs = [...overlay.querySelectorAll('input[name="borrowVolume"]')];
+      const getSelectedVolumes = () => volumeInputs
+        .filter((input) => input.checked && !input.disabled)
+        .map((input) => Number(input.value))
+        .sort((a, b) => a - b);
+      const updateVolumeSelection = () => {
+        const selected = getSelectedVolumes();
+        const enabled = volumeInputs.filter((input) => !input.disabled);
+        if (volumeSummary) {
+          volumeSummary.textContent = selected.length === 0
+            ? 'اختر جزءًا واحدًا أو أكثر'
+            : RaffBook.loanScopeLabel({ type: RaffBook.LOAN_VOLUME, volumes: selected });
+        }
+        if (selectAllBtn) {
+          const allSelected = enabled.length > 0 && enabled.every((input) => input.checked);
+          selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد كل المتاح';
+        }
+      };
+      volumeInputs.forEach((input) => input.addEventListener('change', updateVolumeSelection));
+      selectAllBtn?.addEventListener('click', () => {
+        const enabled = volumeInputs.filter((input) => !input.disabled);
+        const allSelected = enabled.length > 0 && enabled.every((input) => input.checked);
+        enabled.forEach((input) => { input.checked = !allSelected; });
+        updateVolumeSelection();
+      });
+      updateVolumeSelection();
       if (scopeToggle) {
         scopeToggle.addEventListener('click', (e) => {
           const btn = e.target.closest('button[data-scope]');
           if (!btn || btn.disabled) return;
           borrowScope = btn.dataset.scope;
           scopeToggle.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn));
-          volumeSelect.classList.toggle('hidden', borrowScope !== 'volume');
+          volumePicker.classList.toggle('hidden', borrowScope !== 'volume');
         });
       }
 
@@ -357,13 +460,22 @@ function showBookDetails(bookId) {
           note,
           scope: borrowScope,
         };
-        if (borrowScope === 'volume' && volumeSelect) payload.volume = Number(volumeSelect.value);
+        if (borrowScope === 'volume') {
+          payload.volumes = getSelectedVolumes();
+          if (payload.volumes.length === 0) {
+            toast('اختر جزءًا واحدًا على الأقل', 'error');
+            volumePicker?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+          }
+        }
         const res = await window.raff.borrowCopy(book.id, payload);
         if (!res.ok) { toast(res.error, 'error'); return; }
         await refreshState();
         renderNavCounts();
         refreshCurrentView();
-        const what = borrowScope === 'volume' ? `الجزء ${payload.volume}` : 'مجموعة كاملة';
+        const what = borrowScope === 'volume'
+          ? RaffBook.loanScopeLabel({ type: RaffBook.LOAN_VOLUME, volumes: payload.volumes })
+          : 'مجموعة كاملة';
         toast(`تمت إعارة ${what} إلى ${name}`, 'success');
         showBookDetails(book.id);
       };
@@ -373,14 +485,69 @@ function showBookDetails(bookId) {
         if (e.key === 'Enter') { e.preventDefault(); doBorrow(); }
       });
 
-      overlay.querySelectorAll('[data-return-loan]').forEach((btn) => {
+      const closeReturnPickers = (exceptId = null) => {
+        overlay.querySelectorAll('[data-return-picker]').forEach((picker) => {
+          if (picker.dataset.returnPicker !== exceptId) picker.classList.add('hidden');
+        });
+      };
+
+      overlay.querySelectorAll('[data-toggle-return-parts]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const loanId = btn.dataset.toggleReturnParts;
+          const picker = overlay.querySelector(`[data-return-picker="${loanId}"]`);
+          if (!picker) return;
+          const willOpen = picker.classList.contains('hidden');
+          closeReturnPickers(willOpen ? loanId : null);
+          picker.classList.toggle('hidden', !willOpen);
+          if (willOpen) picker.querySelector('input[type="checkbox"]')?.focus();
+        });
+      });
+
+      overlay.querySelectorAll('[data-cancel-return-parts]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const picker = overlay.querySelector(`[data-return-picker="${btn.dataset.cancelReturnParts}"]`);
+          picker?.classList.add('hidden');
+        });
+      });
+
+      overlay.querySelectorAll('[data-confirm-return-parts]').forEach((btn) => {
         btn.addEventListener('click', async () => {
-          const res = await window.raff.returnLoan(book.id, btn.dataset.returnLoan);
-          if (!res.ok) { toast(res.error, 'error'); return; }
+          const loanId = btn.dataset.confirmReturnParts;
+          const picker = overlay.querySelector(`[data-return-picker="${loanId}"]`);
+          const selected = [...(picker?.querySelectorAll('input[type="checkbox"]:checked') || [])]
+            .map((input) => Number(input.value))
+            .sort((a, b) => a - b);
+          if (!selected.length) {
+            toast('حدد جزءًا واحدًا على الأقل لإرجاعه', 'error');
+            picker?.querySelector('input[type="checkbox"]')?.focus();
+            return;
+          }
+          btn.disabled = true;
+          const res = await window.raff.returnLoanParts(book.id, loanId, selected);
+          if (!res.ok) { btn.disabled = false; toast(res.error, 'error'); return; }
           await refreshState();
           renderNavCounts();
           refreshCurrentView();
-          toast('تم تسجيل الإرجاع', 'success');
+          const returnedLabel = selected.length === 1
+            ? `الجزء ${selected[0]}`
+            : `الأجزاء ${RaffBook.formatVolumeNumbers(selected)}`;
+          const message = res.completed
+            ? `تم إرجاع ${returnedLabel} واكتمال الإعارة`
+            : `تم إرجاع ${returnedLabel}، وبقي ${RaffBook.outstandingScopeLabel({ type: RaffBook.LOAN_VOLUME, volumes: res.remainingVolumes, returnedAt: null, volumeReturns: {} }, { volumes: volCount })}`;
+          toast(message, 'success');
+          showBookDetails(book.id);
+        });
+      });
+
+      overlay.querySelectorAll('[data-return-loan]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          const res = await window.raff.returnLoan(book.id, btn.dataset.returnLoan);
+          if (!res.ok) { btn.disabled = false; toast(res.error, 'error'); return; }
+          await refreshState();
+          renderNavCounts();
+          refreshCurrentView();
+          toast(res.returnedVolumes?.length > 1 ? 'تم إرجاع جميع الأجزاء المتبقية' : 'تم تسجيل الإرجاع', 'success');
           showBookDetails(book.id);
         });
       });
@@ -844,7 +1011,7 @@ function renderAddForm(root, editingBook) {
   const meta = RAFF_STATE.meta;
 
   root.innerHTML = `
-    <div class="panel form-panel">
+    <div class="panel form-panel add-book-panel">
       <div class="panel-header">
         <div>
           <h2 class="panel-title">${isEdit ? 'تعديل بيانات الكتاب' : 'إضافة كتاب جديد'}</h2>
@@ -852,7 +1019,7 @@ function renderAddForm(root, editingBook) {
         </div>
       </div>
 
-      <form id="bookForm" novalidate>
+      <form id="bookForm" class="book-form-compact" novalidate>
         <div class="form-grid">
           <div class="field span-2" id="field-title">
             <label>${icon('book')} اسم الكتاب <span class="required">*</span></label>
@@ -897,9 +1064,10 @@ function renderAddForm(root, editingBook) {
             <input type="text" name="publishYear" value="${escapeHtml(b.publishYear)}" placeholder="مثال: 1432هـ" />
           </div>
 
-          <div class="field">
-            <label>${icon('layers')} عدد الأجزاء</label>
+          <div class="field field-volumes">
+            <label>${icon('layers')} عدد الأجزاء / المجلدات</label>
             <input type="number" name="volumes" min="1" value="${b.volumes || 1}" />
+            <span class="hint">عند إدخال أكثر من جزء يمكنك لاحقاً تحديد الجزء الذي استعاره كل مستعير بدقة.</span>
           </div>
 
           <div class="field">
@@ -1058,48 +1226,87 @@ function categoryPool() {
    Library table (distinct from search: columnar, sortable, dense)
    ========================================================= */
 const LIBRARY_COLUMNS = [
-  { key: 'title', label: 'العنوان', align: 'start', grow: 1.6, min: 150 },
-  { key: 'author', label: 'المؤلف', align: 'start', grow: 1.1, min: 110 },
-  { key: 'publisher', label: 'دار النشر', align: 'start', grow: 1.1, min: 110, hide: 'md' },
-  { key: 'category', label: 'المجال', align: 'start', grow: 0.9, min: 90, hide: 'narrow' },
-  { key: 'publishYear', label: 'السنة', align: 'center', grow: 0.6, min: 64, hide: 'narrow' },
-  { key: 'createdAt', label: 'تاريخ الإضافة', align: 'center', grow: 0.9, min: 104, hide: 'md' },
-  { key: 'volumes', label: 'أجزاء', align: 'center', grow: 0.5, min: 60, hide: 'md' },
-  { key: 'price', label: 'السعر', align: 'center', grow: 0.7, min: 70, hide: 'narrow' },
-  { key: 'availableCopies', label: 'متاح / الكل', align: 'center', grow: 0.8, min: 96 },
-  { key: 'status', label: 'الحالة', align: 'center', grow: 0.9, min: 96 },
-  { key: 'referenceNumber', label: 'الرقم المرجعي', align: 'center', grow: 1, min: 130, ltr: true },
+  { key: 'title', label: 'العنوان', align: 'start', grow: 2.1, min: 170, priority: 1 },
+  { key: 'author', label: 'المؤلف', align: 'start', grow: 1.25, min: 110, priority: 1 },
+  { key: 'publisher', label: 'دار النشر', align: 'start', grow: 1.15, min: 105, priority: 3 },
+  { key: 'category', label: 'المجال', align: 'start', grow: 1, min: 88, priority: 2 },
+  { key: 'publishYear', label: 'السنة', align: 'center', grow: 0.55, min: 58, priority: 3 },
+  { key: 'createdAt', label: 'وقت الإضافة', align: 'center', grow: 1.05, min: 122, priority: 1 },
+  { key: 'volumes', label: 'الأجزاء', align: 'center', grow: 0.55, min: 62, priority: 3 },
+  { key: 'price', label: 'السعر', align: 'center', grow: 0.68, min: 70, priority: 2 },
+  { key: 'availableCopies', label: 'متاح / الكل', align: 'center', grow: 0.82, min: 92, priority: 1 },
+  { key: 'status', label: 'الحالة', align: 'center', grow: 0.82, min: 88, priority: 1 },
+  { key: 'referenceNumber', label: 'الرقم المرجعي', align: 'center', grow: 1.05, min: 124, priority: 1, ltr: true },
 ];
 
-// User-adjusted column widths (px), keyed by column key. Empty = use fr grow.
-let _libColWidths = {};
-let _libResizeHandler = null;
-let _libVisibleCount = 0;
+let _libResizeObserver = null;
+let _libVisibleSignature = '';
+let _libMeasuredWidth = 0;
 
-/** Columns visible at the current viewport width (mirrors the CSS breakpoints). */
+/**
+ * The table responds to its actual content width, not the outer window width.
+ * This is important because the expanded rail can remove more than 230px from
+ * the usable area. Lower-priority metadata is hidden before horizontal scroll
+ * can ever become necessary.
+ */
+function measureLibraryHostWidth(root = document.getElementById('viewRoot')) {
+  if (!root) return Math.max(0, window.innerWidth);
+  const styles = getComputedStyle(root);
+  const inlinePadding = (parseFloat(styles.paddingInlineStart) || 0)
+    + (parseFloat(styles.paddingInlineEnd) || 0);
+  // Measure the stable content box of viewRoot. Measuring the child panel and
+  // then rebuilding it changed the measurement source on every render, which
+  // could make the visible-column signature oscillate while the sidebar was
+  // expanding and leave the route animation restarting indefinitely.
+  return Math.max(0, root.clientWidth - inlinePadding);
+}
+
+function libraryContentWidth() {
+  return Math.max(0, _libMeasuredWidth || measureLibraryHostWidth());
+}
+
 function visibleLibColumns() {
-  const w = window.innerWidth;
-  return LIBRARY_COLUMNS.filter((c) => {
-    if (c.hide === 'md' && w <= 1280) return false;
-    if (c.hide === 'narrow' && w <= 1180) return false;
-    return true;
-  });
+  const w = libraryContentWidth();
+  const maxPriority = w >= 1320 ? 3 : w >= 970 ? 2 : 1;
+  return LIBRARY_COLUMNS.filter((c) => c.priority <= maxPriority);
 }
 
-/** Builds the CSS grid template string from the currently visible columns. */
+/** Flexible tracks always fit the available width; no horizontal scrolling. */
 function libGridTemplate() {
-  return visibleLibColumns().map((c) => {
-    const wpx = _libColWidths[c.key];
-    return wpx ? `${wpx}px` : `minmax(${c.min || 80}px, ${c.grow}fr)`;
-  }).join(' ');
+  return visibleLibColumns().map((c) => `minmax(0, ${c.grow}fr)`).join(' ');
 }
 
-const LIB_ROW_HEIGHT = 44;
+const LIB_ROW_HEIGHT = 46;
 const LIB_ROW_GAP = 0;
 const LIB_ROW_STEP = LIB_ROW_HEIGHT + LIB_ROW_GAP;
 
 let _libSort = { key: 'title', dir: 'asc' };
 let _libFilters = { query: '', status: 'all', priceMin: '', priceMax: '' };
+
+const LIB_SORT_OPTIONS = [
+  { value: 'createdAt:desc', label: 'وقت الإضافة: الأحدث' },
+  { value: 'createdAt:asc', label: 'وقت الإضافة: الأقدم' },
+  { value: 'title:asc', label: 'العنوان: أ ← ي' },
+  { value: 'title:desc', label: 'العنوان: ي ← أ' },
+  { value: 'author:asc', label: 'المؤلف: أ ← ي' },
+  { value: 'author:desc', label: 'المؤلف: ي ← أ' },
+  { value: 'publisher:asc', label: 'دار النشر: أ ← ي' },
+  { value: 'publisher:desc', label: 'دار النشر: ي ← أ' },
+  { value: 'category:asc', label: 'المجال: أ ← ي' },
+  { value: 'category:desc', label: 'المجال: ي ← أ' },
+  { value: 'publishYear:desc', label: 'سنة النشر: الأحدث' },
+  { value: 'publishYear:asc', label: 'سنة النشر: الأقدم' },
+  { value: 'volumes:desc', label: 'الأكثر أجزاءً' },
+  { value: 'volumes:asc', label: 'الأقل أجزاءً' },
+  { value: 'price:desc', label: 'السعر: الأعلى' },
+  { value: 'price:asc', label: 'السعر: الأقل' },
+  { value: 'availableCopies:desc', label: 'المتاح: الأكثر' },
+  { value: 'availableCopies:asc', label: 'المتاح: الأقل' },
+  { value: 'status:asc', label: 'الحالة: أبجديًا' },
+  { value: 'status:desc', label: 'الحالة: عكسيًا' },
+  { value: 'referenceNumber:asc', label: 'الرقم المرجعي: تصاعدي' },
+  { value: 'referenceNumber:desc', label: 'الرقم المرجعي: تنازلي' },
+];
 let _libVlist = null;
 let _libDebounce = null;
 
@@ -1133,9 +1340,13 @@ function sortLibrary(books, { key, dir }) {
 
 function renderLibraryTable(root) {
   if (_libVlist) { _libVlist.destroy(); _libVlist = null; }
+  if (_libResizeObserver) { _libResizeObserver.disconnect(); _libResizeObserver = null; }
 
+  _libMeasuredWidth = measureLibraryHostWidth(root);
   const cols = visibleLibColumns();
   const gridTemplate = libGridTemplate();
+  _libVisibleSignature = cols.map((c) => c.key).join('|');
+  const sortValue = `${_libSort.key}:${_libSort.dir}`;
 
   root.innerHTML = `
     <div class="panel library-panel">
@@ -1143,6 +1354,12 @@ function renderLibraryTable(root) {
         <div class="ac-anchor lib-query-wrap">
           <input type="text" id="libQuery" placeholder="تصفية سريعة في الجدول..." autocomplete="off" />
         </div>
+        <label class="lib-sort-control" title="ترتيب السجل">
+          <span>ترتيب</span>
+          <select id="libSortSelect" aria-label="ترتيب السجل الكامل">
+            ${LIB_SORT_OPTIONS.map((opt) => `<option value="${opt.value}" ${opt.value === sortValue ? 'selected' : ''}>${opt.label}</option>`).join('')}
+          </select>
+        </label>
         <div class="chip-toggle" id="libStatusToggle">
           <button data-val="all">الكل</button>
           <button data-val="${RaffBook.STATUS_AVAILABLE}">متاح</button>
@@ -1167,7 +1384,6 @@ function renderLibraryTable(root) {
                 data-sort="${c.key}" style="text-align:${c.align === 'start' ? 'right' : 'center'};">
                 <span class="lib-th-label">${escapeHtml(c.label)}</span><span class="sort-arrow">${c.key === _libSort.key ? (_libSort.dir === 'asc' ? '▲' : '▼') : ''}</span>
               </button>
-              ${i < cols.length - 1 ? `<span class="lib-col-resize" data-resize="${c.key}" title="اسحب لتغيير عرض العمود"></span>` : ''}
             </div>`).join('')}
         </div>
         <div class="lib-scroll" id="libScroll"></div>
@@ -1199,25 +1415,28 @@ function renderLibraryTable(root) {
     renderLibraryTable(root);
   });
 
-  // Column resizing: drag the divider between two headers to set an explicit
-  // pixel width for the column on its right (in RTL, the start-side column).
-  setupColumnResize(root);
-
-  // Rebuild when the viewport crosses a breakpoint so the visible column set
-  // (and the grid template) stays correct. Guarded so we only redraw on an
-  // actual column-set change, not every resize pixel.
-  if (_libResizeHandler) window.removeEventListener('resize', _libResizeHandler);
-  _libVisibleCount = visibleLibColumns().length;
-  _libResizeHandler = () => {
+  // Observe the stable view content box. Re-render only when crossing a
+  // column-priority threshold, so rail expansion never creates horizontal
+  // scrolling, clipped headings, or an animation/re-render loop.
+  _libResizeObserver = new ResizeObserver(() => {
     if (currentRoute !== 'library') return;
-    const n = visibleLibColumns().length;
-    if (n !== _libVisibleCount) {
-      _libVisibleCount = n;
-      const host = document.querySelector('#viewRoot') || root;
-      renderLibraryTable(host);
+    const width = Math.floor(measureLibraryHostWidth(root));
+    if (!width || Math.abs(width - _libMeasuredWidth) < 2) return;
+    _libMeasuredWidth = width;
+    const signature = visibleLibColumns().map((c) => c.key).join('|');
+    if (signature !== _libVisibleSignature) {
+      // Rebuild once only when a real column-priority threshold is crossed.
+      // Both the initial render and the observer now use the same host box, so
+      // expanding/collapsing the sidebar cannot trigger a render loop.
+      requestAnimationFrame(() => {
+        if (currentRoute === 'library' && root.isConnected) renderLibraryTable(root);
+      });
+    } else {
+      applyLibGridTemplate(root);
+      _libVlist?.refresh?.();
     }
-  };
-  window.addEventListener('resize', _libResizeHandler);
+  });
+  _libResizeObserver.observe(root);
 
   const applyFilters = () => {
     if (_libDebounce) clearTimeout(_libDebounce);
@@ -1226,6 +1445,11 @@ function renderLibraryTable(root) {
   queryInput.addEventListener('input', () => { _libFilters.query = queryInput.value; applyFilters(); });
   root.querySelector('#libPriceMin').addEventListener('input', (e) => { _libFilters.priceMin = e.target.value; applyFilters(); });
   root.querySelector('#libPriceMax').addEventListener('input', (e) => { _libFilters.priceMax = e.target.value; applyFilters(); });
+  root.querySelector('#libSortSelect').addEventListener('change', (e) => {
+    const [key, dir] = e.target.value.split(':');
+    _libSort = { key, dir };
+    renderLibraryTable(root);
+  });
   root.querySelector('#libStatusToggle').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-val]');
     if (!btn) return;
@@ -1253,55 +1477,7 @@ function bookHasLoanState(book, state) {
   return false;
 }
 
-/**
- * Enables drag-to-resize on the column dividers. Dragging a divider sets an
- * explicit pixel width for the column it belongs to; the grid template then
- * uses that width instead of the flexible fr track. Double-click resets it.
- */
-function setupColumnResize(root) {
-  const head = root.querySelector('#libHead');
-  if (!head) return;
-
-  head.querySelectorAll('.lib-col-resize').forEach((handle) => {
-    const key = handle.dataset.resize;
-    const col = LIBRARY_COLUMNS.find((c) => c.key === key);
-    const minW = (col && col.min) || 60;
-
-    handle.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const wrap = handle.closest('.lib-th-wrap');
-      const startX = e.clientX;
-      const startW = wrap.getBoundingClientRect().width;
-      document.body.classList.add('col-resizing');
-
-      const onMove = (ev) => {
-        // RTL: dragging left grows the column, so invert the delta.
-        const delta = startX - ev.clientX;
-        const next = Math.max(minW, Math.round(startW + delta));
-        _libColWidths[key] = next;
-        applyLibGridTemplate(root);
-      };
-      const onUp = () => {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-        document.body.classList.remove('col-resizing');
-      };
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-    });
-
-    // Double-click a divider to reset that column to automatic width.
-    handle.addEventListener('dblclick', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      delete _libColWidths[key];
-      applyLibGridTemplate(root);
-    });
-  });
-}
-
-/** Recomputes the CSS grid template from current widths without a full re-render. */
+/** Recomputes the responsive grid tracks without rebuilding row data. */
 function applyLibGridTemplate(root) {
   const table = root.querySelector('.lib-table');
   if (!table) return;
@@ -1343,12 +1519,13 @@ function updateLibraryResults() {
   }
 }
 
-function formatDateShort(iso) {
+function formatDateTimeShort(iso) {
   const t = Date.parse(iso);
   if (!t) return '—';
   const d = new Date(t);
-  // Compact Gregorian date, e.g. 2026/07/12
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+  const date = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${date} · ${time}`;
 }
 
 function renderLibraryRow(book) {
@@ -1360,18 +1537,22 @@ function renderLibraryRow(book) {
   const price = typeof book.price === 'number' ? formatPrice(book.price) : '—';
   const spine = spineColorFor(book.category || book.author);
 
+  const textCell = (value, fallback = '—') => {
+    const safe = escapeHtml(value) || fallback;
+    return `<span class="lib-cell-text" title="${safe}">${safe}</span>`;
+  };
   const content = {
     title: `<span class="lib-title" title="${escapeHtml(book.title)}">${escapeHtml(book.title) || 'بدون عنوان'}</span>`,
-    author: escapeHtml(book.author) || '—',
-    publisher: escapeHtml(book.publisher) || '—',
-    category: escapeHtml(book.category) || '—',
-    publishYear: escapeHtml(book.publishYear) || '—',
-    createdAt: `<span class="lib-date">${formatDateShort(book.createdAt)}</span>`,
+    author: textCell(book.author),
+    publisher: textCell(book.publisher),
+    category: textCell(book.category),
+    publishYear: textCell(book.publishYear),
+    createdAt: `<span class="lib-date" title="${formatDateTimeShort(book.createdAt)}">${formatDateTimeShort(book.createdAt)}</span>`,
     volumes: book.volumes || 1,
     price: price,
     availableCopies: `<span class="${avail === 0 ? 'num-warn' : 'num-ok'}">${avail}</span><span class="lib-total">/${total}</span>`,
     status: `<span class="lib-status ${statusCls}">${status}</span>`,
-    referenceNumber: escapeHtml(book.referenceNumber),
+    referenceNumber: `<span class="lib-cell-text" title="${escapeHtml(book.referenceNumber)}">${escapeHtml(book.referenceNumber)}</span>`,
   };
 
   const cells = visibleLibColumns().map((c) =>
@@ -2389,38 +2570,123 @@ function renderStats(root) {
    ========================================================= */
 /** Shows the result of a data integrity check in a modal. */
 function showIntegrityReport(report) {
-  const section = (title, items, render, tone) => `
-    <div class="integrity-section">
-      <div class="integrity-head ${items.length ? 'has-' + tone : 'ok'}">
-        ${icon(items.length ? 'alert' : 'check', 14)}
-        <span>${title}</span>
-        <span class="integrity-count">${items.length}</span>
-      </div>
-      ${items.length ? `<div class="integrity-items">${items.slice(0, 12).map(render).join('')}${items.length > 12 ? `<div class="integrity-more">و${items.length - 12} أخرى…</div>` : ''}</div>` : ''}
-    </div>`;
+  const list = (value) => Array.isArray(value) ? value : [];
+  const section = (title, items, render, tone = 'warn', { emptyLabel = 'لا توجد مشكلات', limit = 20, showWhenEmpty = false } = {}) => {
+    if (!items.length && !showWhenEmpty) return '';
+    return `
+      <div class="integrity-section">
+        <div class="integrity-head ${items.length ? 'has-' + tone : 'ok'}">
+          ${icon(items.length ? (tone === 'danger' ? 'alert' : 'info') : 'check', 14)}
+          <span>${title}</span>
+          <span class="integrity-count">${items.length}</span>
+        </div>
+        ${items.length
+          ? `<div class="integrity-items">${items.slice(0, limit).map(render).join('')}${items.length > limit ? `<div class="integrity-more">و${items.length - limit} أخرى…</div>` : ''}</div>`
+          : `<div class="integrity-empty">${emptyLabel}</div>`}
+      </div>`;
+  };
+
+  const duplicateRefs = list(report.duplicateRefs);
+  const refNormalization = list(report.referenceNormalization);
+  const duplicateIds = list(report.duplicateIds);
+  const missingIds = list(report.missingIds);
+  const missing = list(report.missing);
+  const inventoryIssues = list(report.inventoryIssues);
+  const loanIssues = list(report.loanIssues);
+  const invalidReferences = list(report.invalidReferences);
+  const overdue = list(report.overdue);
+  const possibleDuplicates = list(report.possibleDuplicates);
+  const repairableCount = Number(report.repairableCount) || 0;
+  const warningsOnly = report.healthy && (overdue.length || possibleDuplicates.length);
+
+  const summaryText = report.healthy
+    ? (warningsOnly
+      ? `بنية البيانات سليمة في ${report.totalBooks} كتاب، مع ${overdue.length + possibleDuplicates.length} تنبيه تشغيلي للمراجعة.`
+      : `البيانات سليمة — لا توجد مشكلات بنيوية في ${report.totalBooks} كتاب.`)
+    : `تم رصد ${report.structuralIssueCount || 0} مشكلة بنيوية في ${report.totalBooks} كتاب.`;
+
+  const duplicateRefHtml = (d) => {
+    const refs = list(d.references).length ? d.references : [d.ref];
+    const books = list(d.books);
+    return `
+      <div class="integrity-item integrity-item-stack">
+        <div class="integrity-item-main">
+          <strong class="integrity-ref" dir="ltr">${refs.map(escapeHtml).join(' / ')}</strong>
+          <span class="integrity-tag danger">${d.count} كتب</span>
+        </div>
+        <div class="integrity-detail-list">
+          ${books.map((b) => `<button class="integrity-detail-link" data-book="${escapeHtml(b.bookId || '')}"><span>${escapeHtml(b.title || '(بدون عنوان)')}</span><code dir="ltr">${escapeHtml(b.referenceNumber || '—')}</code></button>`).join('')}
+        </div>
+      </div>`;
+  };
 
   const html = `
     <div class="modal-header">
-      <h3 class="modal-title">${icon('check')} فحص سلامة البيانات</h3>
+      <div>
+        <h3 class="modal-title">${icon('check')} فحص سلامة البيانات</h3>
+        <p class="modal-subtitle">تتم مقارنة الرقم المرجعي كاملاً بعد تنظيف الفواصل والمسافات فقط؛ لذلك <span dir="ltr">raf-0001</span> و<span dir="ltr">raf-1001</span> رقمان مختلفان.</p>
+      </div>
       <button class="btn btn-ghost btn-icon" id="integClose" aria-label="إغلاق">${icon('x')}</button>
     </div>
     <div class="modal-body">
       <div class="integrity-summary ${report.healthy ? 'is-healthy' : 'has-issues'}">
-        ${report.healthy
-          ? `${icon('check', 20)} <span>البيانات سليمة — لا مشاكل في ${report.totalBooks} كتاب</span>`
-          : `${icon('alert', 20)} <span>تم رصد بعض النقاط في ${report.totalBooks} كتاب</span>`}
+        ${icon(report.healthy ? 'check' : 'alert', 20)}
+        <span>${summaryText}</span>
       </div>
-      ${section('إعارات متأخرة', report.overdue, (o) => `<button class="integrity-item" data-book="${o.bookId}"><span>${escapeHtml(o.borrower)} — ${escapeHtml(o.title)}</span><span class="integrity-tag danger">${o.days} يوم</span></button>`, 'danger')}
-      ${section('أرقام مرجعية مكررة', report.duplicateRefs, (d) => `<div class="integrity-item"><span>${escapeHtml(d.ref)}</span><span class="integrity-tag danger">${d.count} كتب</span></div>`, 'danger')}
-      ${section('بيانات ناقصة', report.missing, (m) => `<button class="integrity-item" data-book="${m.bookId}"><span>${escapeHtml(m.title)}</span><span class="integrity-tag warn">${m.gaps.join('، ')}</span></button>`, 'warn')}
-      ${section('عناوين مكررة محتملة', report.possibleDuplicates, (p) => `<div class="integrity-item"><span>${escapeHtml(p.title)} — ${escapeHtml(p.author || '؟')}</span><span class="integrity-tag warn">${p.count} نسخ</span></div>`, 'warn')}
+
+      ${section('أرقام مرجعية مكررة فعلياً', duplicateRefs, duplicateRefHtml, 'danger')}
+      ${section('تنسيق أرقام مرجعية يحتاج توحيداً', refNormalization, (r) => `
+        <button class="integrity-item integrity-item-stack" data-book="${escapeHtml(r.bookId || '')}">
+          <div class="integrity-item-main"><span>${escapeHtml(r.title)}</span><span class="integrity-tag warn">قابل للإصلاح</span></div>
+          <div class="integrity-ref-change"><code dir="ltr">${escapeHtml(r.before)}</code><span>←</span><code dir="ltr">${escapeHtml(r.after)}</code></div>
+        </button>`, 'warn')}
+      ${section('أرقام مرجعية غير صالحة', invalidReferences, (r) => `<button class="integrity-item" data-book="${escapeHtml(r.bookId || '')}"><span>${escapeHtml(r.title)} — <bdi>${escapeHtml(r.referenceNumber)}</bdi></span><span class="integrity-tag danger">${escapeHtml(r.reason)}</span></button>`, 'danger')}
+      ${section('معرّفات داخلية مكررة أو مفقودة', [...duplicateIds, ...missingIds], (r) => `<div class="integrity-item"><span>${escapeHtml(r.id ? `${r.id} — ${list(r.titles).join('، ')}` : `${r.title} — ${r.referenceNumber || '—'}`)}</span><span class="integrity-tag danger">قابل للإصلاح</span></div>`, 'danger')}
+      ${section('بيانات أساسية ناقصة', missing, (m) => `<button class="integrity-item" data-book="${escapeHtml(m.bookId || '')}"><span>${escapeHtml(m.title)} <bdi>${escapeHtml(m.referenceNumber || '')}</bdi></span><span class="integrity-tag warn">${m.gaps.map(escapeHtml).join('، ')}</span></button>`, 'warn')}
+      ${section('اتساق النسخ والأجزاء', inventoryIssues, (i) => `<button class="integrity-item" data-book="${escapeHtml(i.bookId || '')}"><span>${escapeHtml(i.title)} — ${escapeHtml(i.field)}</span><span class="integrity-tag ${i.repairable ? 'warn' : 'danger'}">${i.repairable ? 'قابل للإصلاح' : 'مراجعة يدوية'}</span></button>`, 'warn')}
+      ${section('اتساق سجل الإعارات', loanIssues, (i) => `<button class="integrity-item" data-book="${escapeHtml(i.bookId || '')}"><span>${escapeHtml(i.title)} — ${escapeHtml(i.issue)}</span><span class="integrity-tag ${i.repairable ? 'warn' : 'danger'}">${i.repairable ? 'قابل للإصلاح' : 'مراجعة يدوية'}</span></button>`, 'danger')}
+      ${section('إعارات متأخرة', overdue, (o) => `<button class="integrity-item" data-book="${escapeHtml(o.bookId || '')}"><span>${escapeHtml(o.borrower || 'غير معروف')} — ${escapeHtml(o.title)}</span><span class="integrity-tag danger">${o.days} يوم</span></button>`, 'warn')}
+      ${section('عناوين متشابهة للمراجعة فقط', possibleDuplicates, (p) => `<div class="integrity-item"><span>${escapeHtml(p.title)} — ${escapeHtml(p.author || '؟')}</span><span class="integrity-tag warn">${p.count} سجلات</span></div>`, 'warn')}
+    </div>
+    <div class="integrity-footer">
+      <div class="integrity-footer-note">${repairableCount ? `${repairableCount} إصلاحاً آمناً متاحاً. تُنشأ نسخة احتياطية قبل أي تعديل.` : 'لا توجد إصلاحات تلقائية مطلوبة.'}</div>
+      <div class="integrity-footer-actions">
+        ${repairableCount ? `<button class="btn btn-primary" id="integrityRepairBtn">${icon('refresh')} إصلاح آمن (${repairableCount})</button>` : ''}
+        <button class="btn btn-outline" id="integrityRecheckBtn">${icon('check')} إعادة الفحص</button>
+      </div>
     </div>`;
 
   openModal(html, {
+    modalClass: 'modal-integrity',
     onMount: (overlay) => {
       overlay.querySelector('#integClose').addEventListener('click', closeModal);
-      overlay.querySelectorAll('.integrity-item[data-book]').forEach((el) => {
-        el.addEventListener('click', () => { closeModal(); showBookDetails(el.dataset.book); });
+      overlay.querySelectorAll('[data-book]').forEach((el) => {
+        const id = el.dataset.book;
+        if (!id) return;
+        el.addEventListener('click', () => { closeModal(); showBookDetails(id); });
+      });
+      overlay.querySelector('#integrityRecheckBtn').addEventListener('click', async () => {
+        const btn = overlay.querySelector('#integrityRecheckBtn');
+        btn.disabled = true;
+        const res = await window.raff.integrityCheck();
+        if (res.ok) showIntegrityReport(res.report);
+        else { btn.disabled = false; toast('تعذّر إجراء الفحص', 'error'); }
+      });
+      const repairBtn = overlay.querySelector('#integrityRepairBtn');
+      if (repairBtn) repairBtn.addEventListener('click', async () => {
+        const ok = await confirmModal({
+          title: 'تنفيذ الإصلاح الآمن؟',
+          message: 'سيُنشئ النظام نسخة احتياطية أولاً، ثم يوحّد تنسيق الأرقام المرجعية، ويمنح رقماً جديداً للسجلات المكررة أو الناقصة، ويصلح معرّفات السجلات والقيم الرقمية الواضحة. لن يحذف أي كتاب أو إعارة.',
+          confirmLabel: 'إنشاء نسخة وإصلاح',
+          danger: false,
+        });
+        if (!ok) { showIntegrityReport(report); return; }
+        const res = await window.raff.repairIntegrity();
+        if (!res.ok) { toast('تعذّر إصلاح البيانات: ' + (res.error || ''), 'error'); return; }
+        await refreshState();
+        renderNavCounts();
+        toast(`تم تنفيذ ${res.result.changed} تعديل مع حفظ نسخة احتياطية`, 'success', 4200);
+        showIntegrityReport(res.result.after);
       });
     },
   });
@@ -2537,7 +2803,7 @@ function renderSettings(root) {
       <button class="btn btn-outline btn-sm" id="backupBtn">${icon('copies')} إنشاء نسخة</button>
     </div>
     <div class="setting-action">
-      <div><div class="setting-action-title">فحص سلامة البيانات</div><div class="setting-action-desc">كشف المتأخرات والنواقص والتكرار المحتمل</div></div>
+      <div><div class="setting-action-title">فحص سلامة البيانات</div><div class="setting-action-desc">فحص شامل للأرقام المرجعية والنسخ والإعارات مع إصلاح آمن ونسخة احتياطية</div></div>
       <button class="btn btn-outline btn-sm" id="integrityBtn">${icon('check')} فحص الآن</button>
     </div>
     <div class="setting-action">
