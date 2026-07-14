@@ -1,47 +1,51 @@
-<!-- ╔══════════════════════════════════════════════════════════════╗ -->
-<!-- ║                         رَفّ · RAFF                           ║ -->
-<!-- ║              نظام عربي لفهرسة وإدارة المكتبات                 ║ -->
-<!-- ╚══════════════════════════════════════════════════════════════╝ -->
+<!-- markdownlint-disable MD033 MD041 MD013 -->
+<!--
+╔════════════════════════════════════════════════════════════════════╗
+║                           رَفّ · RAFF                              ║
+║              نظام عربي لفهرسة المكتبات وإدارتها                    ║
+║                         الإصدار 2.7.0                              ║
+╚════════════════════════════════════════════════════════════════════╝
+-->
+
+<a id="top"></a>
 
 <div align="center" dir="rtl">
 
-<img src="assets/icon.png" alt="شعار رَفّ" width="130">
+<img src="assets/icon.png" alt="شعار رَفّ" width="118">
 
-<h1>رَفٌّ</h1>
+<h1>رَفّ</h1>
 
-<h3>نظام عربي لفهرسة وإدارة المكتبات</h3>
+<h3>نظام عربي متكامل لفهرسة المكتبات وإدارتها</h3>
 
-<p><em>أضف الكتاب مرّة… امسح باركوده… واعثر عليه في ثوانٍ.</em></p>
+<p><strong>أضف الكتاب مرة، امنحه رقمًا مرجعيًا وباركودًا، ثم اعثر عليه وأعِره وأدِر أجزاءه في ثوانٍ.</strong></p>
 
 <p>
-  <img src="https://img.shields.io/badge/version-1.0.0-2F855A?style=for-the-badge&labelColor=22543D" alt="version">
-  <img src="https://img.shields.io/badge/platform-Windows-2B6CB0?style=for-the-badge&labelColor=1A365D" alt="platform">
-  <img src="https://img.shields.io/badge/Electron-31-44566C?style=for-the-badge&logo=electron&logoColor=white&labelColor=2D3748" alt="Electron">
-  <img src="https://img.shields.io/badge/license-MIT-2F855A?style=for-the-badge&labelColor=22543D" alt="license">
+  <img src="https://img.shields.io/badge/الإصدار-2.7.0-B0894B?style=for-the-badge&labelColor=3E2C1C" alt="الإصدار 2.7.0">
+  <img src="https://img.shields.io/badge/النظام-Windows_64--bit-6F4E37?style=for-the-badge&logo=windows&logoColor=white&labelColor=2A1E17" alt="Windows 64-bit">
+  <img src="https://img.shields.io/badge/Electron-31-47848F?style=for-the-badge&logo=electron&logoColor=white&labelColor=263238" alt="Electron 31">
+  <img src="https://img.shields.io/badge/الترخيص-MIT-4B6350?style=for-the-badge&labelColor=2F3E33" alt="MIT License">
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/Offline_First-✓-4B6350?style=flat-square&labelColor=2F3E33" alt="offline">
-  <img src="https://img.shields.io/badge/Arabic_RTL_UI-✓-C19A2E?style=flat-square&labelColor=6B5518" alt="rtl">
-  <img src="https://img.shields.io/badge/Barcode_·_Scanner-✓-8B5E34?style=flat-square&labelColor=3E2C1C" alt="barcode">
-  <img src="https://img.shields.io/badge/PDF_Labels-✓-732E2E?style=flat-square&labelColor=451B1B" alt="pdf labels">
-  <img src="https://img.shields.io/badge/No_Ads_·_No_Tracking-✓-4A5568?style=flat-square&labelColor=2D3748" alt="privacy">
+  <img src="https://img.shields.io/badge/Offline_First-Local-4B6350?style=flat-square&labelColor=2F3E33" alt="Offline First">
+  <img src="https://img.shields.io/badge/Arabic_RTL-Full-B0894B?style=flat-square&labelColor=5B432C" alt="Arabic RTL">
+  <img src="https://img.shields.io/badge/Light_·_Dark-Themes-7A6248?style=flat-square&labelColor=34261C" alt="Light and Dark">
+  <img src="https://img.shields.io/badge/Barcode_·_PDF-Ready-8B5E34?style=flat-square&labelColor=3E2C1C" alt="Barcode and PDF">
+  <img src="https://img.shields.io/badge/Multi--Volume_Loans-Supported-986C2E?style=flat-square&labelColor=4A3217" alt="Multi-volume loans">
+  <img src="https://img.shields.io/badge/No_Ads_·_No_Tracking-Private-4A5568?style=flat-square&labelColor=2D3748" alt="No ads or tracking">
 </p>
 
-<p dir="rtl"><sub>يعمل بلا إنترنت · واجهة عربية كاملة (RTL) · باركود ومسح ضوئي · ملصقات PDF بهوية المؤسسة · بلا إعلانات ولا تتبّع</sub></p>
+<p><sub>واجهة عربية كاملة · يعمل محليًا بلا إنترنت · تصميم Minimalist بنّي وذهبي · خصوصية كاملة · مفتوح المصدر</sub></p>
 
 <br>
 
-<!-- شريط تنقّل سريع -->
-<a href="#-عن-رَفّ">عن رَفّ</a> ·
-<a href="#-المميزات">المميزات</a> ·
-<a href="#-الباركود-والمسح-الضوئي-">الباركود</a> ·
-<a href="#-التحميل">التحميل</a> ·
-<a href="#-متطلبات-التشغيل">المتطلبات</a> ·
-<a href="#-المعمارية">المعمارية</a> ·
-<a href="#-الخصوصية-ومكان-البيانات">الخصوصية</a> ·
-<a href="#-للمطوّرين">للمطوّرين</a> ·
-<a href="#-الترخيص">الترخيص</a>
+<a href="https://github.com/Hzifa33/raff/releases/latest">
+  <img src="https://img.shields.io/badge/تحميل_أحدث_إصدار-GitHub_Releases-B0894B?style=for-the-badge&labelColor=3E2C1C" alt="تحميل أحدث إصدار">
+</a>
+&nbsp;
+<a href="https://github.com/Hzifa33/raff/issues">
+  <img src="https://img.shields.io/badge/الإبلاغ_عن_مشكلة-GitHub_Issues-6F4E37?style=for-the-badge&labelColor=2A1E17" alt="الإبلاغ عن مشكلة">
+</a>
 
 </div>
 
@@ -49,334 +53,548 @@
 
 <div align="center" dir="rtl">
 
-> ### <img src="https://icongr.am/feather/book-open.svg?size=60&color=b0894b" width="20" align="center" alt=""> المعرفة تستحق نظامًا يحفظها،
+> ### <img src="https://icongr.am/feather/book-open.svg?size=64&color=b0894b" width="21" align="center" alt=""> المعرفة تستحق نظامًا يحفظها،
 > ### والكتاب الذي لا يُعثَر عليه كأنه غير موجود.
 
 </div>
+
+<details>
+<summary><b><img src="https://icongr.am/feather/compass.svg?size=64&color=b0894b" width="16" align="center" alt=""> فهرس سريع</b></summary>
+
+<div dir="rtl">
+
+- [عن رَفّ](#overview)
+- [ما الجديد في 2.7.0](#whats-new)
+- [المميزات](#features)
+- [الإعارة متعددة الأجزاء](#multi-volume)
+- [سلامة البيانات والإصلاح الآمن](#data-integrity)
+- [الباركود والطباعة](#barcode)
+- [التحميل والتشغيل](#download)
+- [الخصوصية والنسخ الاحتياطية](#privacy)
+- [المعمارية](#architecture)
+- [للمطوّرين](#developers)
+- [الأسئلة الشائعة](#faq)
+- [الترخيص والمطوّر](#license)
+
+</div>
+
+</details>
 
 <div align="right" dir="rtl">
 
 ---
 
-## ✦ عن رَفّ
+<a id="overview"></a>
 
-**رَفٌّ** برنامج مكتبي عربي لإدارة وفهرسة المكتبات، صُمِّم للمكتبات الكبيرة، ودور النشر، والمدارس، والمراكز التعليمية، ومكتبات المساجد والأوقاف، والباحثين وأمناء المكتبات الذين يريدون نظامًا سريعًا يتحمّل آلاف العناوين بدل الجداول المبعثرة والبحث اليدوي.
+## <img src="https://icongr.am/feather/book-open.svg?size=64&color=b0894b" width="19" align="center" alt=""> عن رَفّ
 
-يعمل البرنامج **محليًا وبلا إنترنت**، بواجهة عربية كاملة (RTL)، وخطوط مدمجة، وبلا أي إعلانات أو تتبّع.
+**رَفّ** تطبيق مكتبي عربي لإدارة وفهرسة المكتبات، صُمّم للمكتبات العامة والخاصة، والمدارس والمراكز التعليمية، ومكتبات المساجد والأوقاف، ودور النشر، والباحثين وأمناء المكتبات.
+
+يجمع البرنامج الفهرسة، والجرد، والإعارة، وإدارة الكتب متعددة الأجزاء، والبحث، والباركود، والطباعة، والتقارير، والنسخ الاحتياطية داخل واجهة عربية حديثة تعمل **محليًا بالكامل**.
 
 <table>
 <tr>
-<td align="center" width="33%"><img src="https://icongr.am/feather/award.svg?size=120&color=b0894b" width="40" alt=""><br><b>مدارس ومراكز</b><br><sub>تعليمية</sub></td>
-<td align="center" width="33%"><img src="https://icongr.am/feather/book.svg?size=120&color=b0894b" width="40" alt=""><br><b>مكتبات كبيرة</b><br><sub>عامة وخاصة</sub></td>
-<td align="center" width="33%"><img src="https://icongr.am/feather/printer.svg?size=120&color=b0894b" width="40" alt=""><br><b>دور النشر</b><br><sub>وإدارة المخزون</sub></td>
+<td align="center" width="25%"><img src="https://icongr.am/feather/archive.svg?size=64&color=b0894b" width="17" align="center" alt=""><br><b>مكتبات عامة وخاصة</b><br><sub>إدارة آلاف العناوين</sub></td>
+<td align="center" width="25%"><img src="https://icongr.am/feather/award.svg?size=64&color=b0894b" width="17" align="center" alt=""><br><b>مدارس ومراكز</b><br><sub>فهرسة وإعارة منظمة</sub></td>
+<td align="center" width="25%"><img src="https://icongr.am/feather/bookmark.svg?size=64&color=b0894b" width="17" align="center" alt=""><br><b>مساجد وأوقاف</b><br><sub>حفظ الكتب وتتبعها</sub></td>
+<td align="center" width="25%"><img src="https://icongr.am/feather/search.svg?size=64&color=b0894b" width="17" align="center" alt=""><br><b>باحثون وأمناء مكتبات</b><br><sub>وصول سريع ودقيق</sub></td>
 </tr>
-<tr>
-<td align="center"><img src="https://icongr.am/feather/book-open.svg?size=120&color=b0894b" width="40" alt=""><br><b>مكتبات المساجد</b><br><sub>والأوقاف</sub></td>
-<td align="center"><img src="https://icongr.am/feather/search.svg?size=120&color=b0894b" width="40" alt=""><br><b>باحثون</b><br><sub>وأمناء مكتبات</sub></td>
-<td align="center"><img src="https://icongr.am/feather/database.svg?size=120&color=b0894b" width="40" alt=""><br><b>مكتبات ضخمة</b><br><sub>بآلاف العناوين</sub></td>
-</tr>
+</table>
+
+### لماذا رَفّ؟
+
+<table>
+<tr><td width="31%"><b><img src="https://icongr.am/feather/zap.svg?size=64&color=b0894b" width="17" align="center" alt=""> سريع</b></td><td>بحث فوري، وعرض منظم، وأداء ثابت مع المكتبات الكبيرة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/compass.svg?size=64&color=b0894b" width="17" align="center" alt=""> واضح</b></td><td>واجهة Minimalist عربية كاملة، وقائمة جانبية قابلة للطي، ووضعان نهاري وليلي.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/lock.svg?size=64&color=b0894b" width="17" align="center" alt=""> خاص</b></td><td>لا حسابات، ولا خوادم، ولا إعلانات، ولا تتبّع؛ بياناتك تبقى على جهازك.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/layers.svg?size=64&color=b0894b" width="17" align="center" alt=""> مرن</b></td><td>كتب مفردة أو متعددة الأجزاء، وإعارة نسخة كاملة أو أجزاء مختارة، وإرجاع جزئي.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/shield.svg?size=64&color=b0894b" width="17" align="center" alt=""> آمن</b></td><td>كتابة ذرية، ونسخ احتياطية، وفحص سلامة، وإصلاح آمن لا يحذف بياناتك بصمت.</td></tr>
 </table>
 
 ---
 
-## ✦ المميزات
+<a id="whats-new"></a>
 
-> رحلة كتاب واحد في رَفّ: **يُسجَّل مرّة** ← يأخذ **رقمًا مرجعيًا وباركود** ← يُطبع له ملصق أو يُحفظ PDF ← يُعار **كاملًا أو جزءًا** ← يُمسَح بالقارئ لعرض بياناته ← يظهر في **البحث واللوحة والتقارير** فورًا.
-
-<br>
+## <img src="https://icongr.am/feather/gift.svg?size=64&color=b0894b" width="19" align="center" alt=""> الجديد في الإصدار 2.7.0
 
 <div align="center" dir="rtl">
-
 <table>
-<tr><td align="center" width="100%">
+<tr><td align="center">
 
-**<img src="https://icongr.am/feather/gift.svg?size=48&color=b0894b" width="16" align="center" alt=""> الجديد في الإصدار 1.0.0**
+### إصدار يركّز على الدقة، والاستقرار، وتجربة الاستخدام
 
-نظام باركود ومسح ضوئي متكامل · طباعة الملصقات أو حفظها **PDF** مباشرة من نافذة الكتاب · ملصقات بهوية المؤسسة على **A4** · **مدة إعارة قابلة للضبط** · تصدير **المستعيرين والتصنيفات مجمّعاً** · أعمدة السجل **قابلة لتغيير العرض** والترتيب حسب **تاريخ الإضافة** · ترقيم مرجعي ذكي يملأ الفجوات
+**ثيم Minimalist مستوحى من shadcn/ui** · **إعارة عدة أجزاء** · **إرجاع جزء محدد** · **سجل كامل متجاوب** · **ترتيب حسب وقت الإضافة** · **فحص سلامة أكثر ذكاءً** · **إصلاح آمن مع نسخة احتياطية**
 
 </td></tr>
 </table>
-
 </div>
 
-<br>
+### <img src="https://icongr.am/feather/layout.svg?size=64&color=b0894b" width="18" align="center" alt=""> واجهة جديدة أكثر نضجًا
+- لغة بصرية Minimalist مستوحاة من **shadcn/ui** مع الحفاظ على هوية رَفّ البنية والذهبية.
+- وضع نهاري عاجي هادئ ووضع ليلي بني داكن غير فاحم.
+- قائمة جانبية قابلة للطي والفتح بسلاسة، مع شعار مخصص وتلميحات كاملة غير مقطوعة.
+- أيقونات ومحاذاة ومسافات موحّدة في جميع الأقسام.
+- نوافذ منبثقة متجاوبة، وتمرير داخلي صحيح للمحتوى الطويل.
+- نموذج إضافة الكتاب أكثر كثافة وتنظيمًا لتقليل الحاجة إلى التمرير.
+- تحسين أحجام لوحة المعلومات والجداول والبطاقات لتناسب الشاشات المكتبية الصغيرة والكبيرة.
+- احترام إعداد النظام **تقليل الحركة** لتحسين إمكانية الوصول.
 
-### <img src="https://icongr.am/feather/book.svg?size=54&color=b0894b" width="18" align="center" alt=""> الفهرسة وبيانات الجرد
+### <img src="https://icongr.am/feather/repeat.svg?size=64&color=b0894b" width="18" align="center" alt=""> إعارة الأجزاء وإرجاعها
+- اختيار **جزء واحد أو عدة أجزاء** من الكتاب في إعارة واحدة.
+- زر **تحديد كل المتاح** للأجزاء.
+- تعطيل الأجزاء غير المتاحة تلقائيًا.
+- إرجاع **جزء واحد أو عدة أجزاء** مع بقاء بقية الأجزاء مع المستعير.
+- تاريخ إرجاع مستقل لكل جزء، ولا تُغلق الإعارة إلا بعد إعادة آخر جزء.
+- احتساب الإتاحة لكل جزء بصورة مستقلة.
+- ترقية بيانات الإصدارات القديمة تلقائيًا دون فقدان الإعارات السابقة.
 
+### <img src="https://icongr.am/feather/grid.svg?size=64&color=b0894b" width="18" align="center" alt=""> السجل الكامل
+- ترتيب بحسب **وقت الإضافة: الأحدث أو الأقدم**.
+- ترتيب بحسب العنوان، والمؤلف، ودار النشر، والمجال، والسنة، والسعر، والأجزاء، والإتاحة، والحالة، والرقم المرجعي.
+- تصميم متجاوب يمنع التمرير الأفقي غير الضروري.
+- إخفاء الأعمدة الثانوية تدريجيًا على الشاشات الضيقة بدل قطع أسماء الأقسام.
+- فلاتر للحالة: الكل، متاح، جزئي، معار، متأخر، ويستحق قريبًا.
+- تصفية بمدى السعر، وبحث سريع داخل الجدول.
+- ثبات المحتوى في حالتي طي القائمة الجانبية وتوسيعها.
+
+### <img src="https://icongr.am/feather/shield.svg?size=64&color=b0894b" width="18" align="center" alt=""> سلامة البيانات 2.0
+- مقارنة الرقم المرجعي **كاملًا** بدل الاعتماد على أجزائه الرقمية.
+- الرقم `raf-0001` مختلف تمامًا عن `raf-1001` ولا يُعد تكرارًا.
+- توحيد منطقي للحروف الكبيرة والصغيرة، والشرطات، والمسافات، والأرقام العربية والفارسية.
+- تطبيق المنطق نفسه عند الإضافة، والتعديل، والاستيراد، والبحث، والباركود، والاستعادة.
+- فصل الأخطاء البنيوية عن التحذيرات التشغيلية؛ فالتأخر في الإرجاع ليس تلفًا في قاعدة البيانات.
+- زر **إصلاح آمن** ينشئ نسخة احتياطية قبل أي تعديل.
+- عدم حذف كتاب أو إعارة تلقائيًا لمجرد الاشتباه في التكرار.
+
+---
+
+<a id="features"></a>
+
+## <img src="https://icongr.am/feather/grid.svg?size=64&color=b0894b" width="19" align="center" alt=""> المميزات
+
+> **رحلة الكتاب في رَفّ:** يُسجّل مرة، ثم يحصل على رقم مرجعي وباركود، ويُطبع له ملصق، ويُبحث عنه أو يُمسح، ويُعار كاملًا أو بأجزاء مختارة، ثم يظهر فورًا في اللوحة والسجل والتقارير.
+
+### <img src="https://icongr.am/feather/book.svg?size=64&color=b0894b" width="18" align="center" alt=""> الفهرسة وبيانات الجرد
 <table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/file-text.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>البيانات الأساسية</b></td><td valign="middle">اسم الكتاب، المؤلف، دار النشر، التصنيف، الطبعة، سنة النشر، والملاحظات.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/folder.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>حقول جرد موسّعة</b></td><td valign="middle">السلسلة، الترتيب داخل السلسلة، الكلمات المفتاحية، حالة النسخة (جيدة/مقبولة/تالفة/مفقودة)، جهة الاقتناء، والرف.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/dollar-sign.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>السعر وعدد الأجزاء</b></td><td valign="middle">لكل كتاب (اختياريان)، ويظهران في التصدير والتقارير.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/type.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>اقتراحات تلقائية</b></td><td valign="middle">أثناء الكتابة للمؤلف، دار النشر، التصنيف، السلسلة، والرف.</td></tr>
+<tr><td width="31%"><b><img src="https://icongr.am/feather/file-text.svg?size=64&color=b0894b" width="17" align="center" alt=""> البيانات الأساسية</b></td><td>العنوان، المؤلف، دار النشر، المجال، الطبعة، سنة النشر، والملاحظات.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/folder.svg?size=64&color=b0894b" width="17" align="center" alt=""> بيانات جرد موسّعة</b></td><td>السلسلة، ترتيب الكتاب داخلها، الكلمات المفتاحية، حالة النسخة، جهة الاقتناء، والرف.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/dollar-sign.svg?size=64&color=b0894b" width="17" align="center" alt=""> السعر والمخزون</b></td><td>السعر، عدد النسخ، وعدد الأجزاء، مع احتساب المتاح والمعار تلقائيًا.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/zap.svg?size=64&color=b0894b" width="17" align="center" alt=""> اقتراحات تلقائية</b></td><td>اقتراح المؤلفين، ودور النشر، والمجالات، والسلاسل، والرفوف أثناء الكتابة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/clock.svg?size=64&color=b0894b" width="17" align="center" alt=""> وقت الإضافة</b></td><td>تسجيل تاريخ ووقت إضافة كل كتاب، مع دعم الفرز الزمني في السجل الكامل.</td></tr>
 </table>
 
-### <img src="https://icongr.am/feather/search.svg?size=54&color=b0894b" width="18" align="center" alt=""> البحث
-
+### <img src="https://icongr.am/feather/search.svg?size=64&color=b0894b" width="18" align="center" alt=""> البحث والوصول
 <table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/zap.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>بحث فوري ذكي</b></td><td valign="middle">لا يتأثّر بالتشكيل أو التطويل، ويفهم اختلاف الحروف: أ، إ، آ، ا، ى، ي، ة، ه.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/target.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>البحث المتقدم</b></td><td valign="middle">يغطّي العنوان، المؤلف، دار النشر، الرقم المرجعي، التصنيف، <b>السلسلة، الرف، الكلمات المفتاحية</b>، والمستعير.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/grid.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>السجل الكامل</b></td><td valign="middle">جدول احترافي قابل للفرز بكل عمود (العنوان، المؤلف، السنة، السعر، الحالة، <b>تاريخ الإضافة</b>…)، مع <b>أعمدة قابلة لتغيير العرض بالسحب</b>، وفلاتر: متاح، جزئي، معار، <b>متأخر</b>، و<b>يستحق قريبًا</b>، وتصفية بمدى سعري. يعرض النتائج على دفعات لأداء ثابت مهما كبرت المكتبة.</td></tr>
+<tr><td width="31%"><b><img src="https://icongr.am/feather/zap.svg?size=64&color=b0894b" width="17" align="center" alt=""> بحث عربي ذكي</b></td><td>لا يتأثر بالتشكيل أو التطويل، ويتعامل مع اختلافات الهمزات والياء والألف المقصورة والتاء المربوطة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/target.svg?size=64&color=b0894b" width="17" align="center" alt=""> بحث متقدم</b></td><td>العنوان، والمؤلف، ودار النشر، والرقم المرجعي، والمجال، والسلسلة، والرف، والكلمات المفتاحية، والمستعير.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/command.svg?size=64&color=b0894b" width="17" align="center" alt=""> بحث سريع</b></td><td>الوصول إلى البحث من الشريط العلوي واختصار <code>Ctrl + K</code>.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/bar-chart-2.svg?size=64&color=b0894b" width="17" align="center" alt=""> سجل كامل</b></td><td>جدول احترافي للفرز والتصفية والمراجعة الشاملة دون ازدحام أو قص للعناوين.</td></tr>
 </table>
 
-### <img src="https://icongr.am/feather/bookmark.svg?size=54&color=b0894b" width="18" align="center" alt=""> الأرقام المرجعية
-
+### <img src="https://icongr.am/feather/tag.svg?size=64&color=b0894b" width="18" align="center" alt=""> الأرقام المرجعية
 <table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/tag.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>ترقيم ذكي يبدأ من raf-0001</b></td><td valign="middle">يُنشأ رقم <code>raf-NNNN</code> لكل كتاب، ويبدأ دائماً من أول رقم متاح <b>ويملأ الفجوات</b>، ولا تُربكه أرقام مستوردة بصيغ غريبة (مثل RAF-TEST-1000).</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/edit-2.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>تعديل مرن ومحمي</b></td><td valign="middle">يمكن تعديل الرقم بعد الإضافة ومن نافذة التفاصيل، مع <b>حماية من التكرار</b> عند التعديل والاستيراد.</td></tr>
+<tr><td width="31%"><b><img src="https://icongr.am/feather/hash.svg?size=64&color=b0894b" width="17" align="center" alt=""> ترقيم ذكي</b></td><td>توليد رقم مرجعي بصيغة <code>raf-NNNN</code> بدءًا من أول رقم متاح مع ملء الفجوات.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/edit-2.svg?size=64&color=b0894b" width="17" align="center" alt=""> قابل للتعديل</b></td><td>تعديل الرقم بعد الإضافة ومن نافذة تفاصيل الكتاب مع حماية حقيقية من التكرار.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/cpu.svg?size=64&color=b0894b" width="17" align="center" alt=""> مطابقة دقيقة</b></td><td>توحيد الاختلافات التنسيقية فقط دون اعتبار أرقام مختلفة مثل <code>raf-0001</code> و<code>raf-1001</code> متكررة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/globe.svg?size=64&color=b0894b" width="17" align="center" alt=""> أرقام متعددة</b></td><td>التعامل مع الأرقام العربية <code>١٢٣</code> والفارسية <code>۱۲۳</code> واللاتينية <code>123</code> بصورة موحدة.</td></tr>
 </table>
 
-### <img src="https://icongr.am/feather/maximize.svg?size=54&color=b0894b" width="18" align="center" alt=""> الباركود والمسح الضوئي <img src="https://img.shields.io/badge/NEW-8B5E34?style=flat-square&labelColor=3E2C1C" alt="new">
+<a id="multi-volume"></a>
 
+### <img src="https://icongr.am/feather/repeat.svg?size=64&color=b0894b" width="18" align="center" alt=""> نظام الإعارة متعدد الأجزاء
 <table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/bar-chart.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>توليد باركود</b></td><td valign="middle">باركود <b>Code 128</b> يُولَّد تلقائيًا من الرقم المرجعي لكل كتاب — بلا إنترنت، ويظهر فور الإضافة وفي صفحة المسح.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/maximize.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>قارئ آلي من أي شاشة</b></td><td valign="middle">قارئ الباركود USB يعمل تلقائيًا من أي مكان في البرنامج (يعمل كلوحة مفاتيح)، ويميّز المسح عن الكتابة اليدوية بذكاء.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/file-text.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>صفحة بيانات فورية</b></td><td valign="middle">بمجرد المسح تظهر <b>صفحة الكتاب كاملة</b>: العنوان، المؤلف، السعر، الرف، الأجزاء، الإتاحة، والإعارات المفتوحة.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/printer.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>طباعة أو حفظ PDF</b></td><td valign="middle">اطبع الملصقات مباشرة أو <b>احفظها ملف PDF</b> — ملصق مفرد، أو ورقة لكل المكتبة، أو حسب رف/مجال/سلسلة، أو <b>حسب نطاق رقمي</b> (مثل raf-0001 إلى raf-0100).</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/file-text.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>طباعة فورية من نافذة الكتاب</b></td><td valign="middle">زر <b>طباعة الملصق</b> و<b>حفظ PDF</b> مباشرة من نافذة تفاصيل أي كتاب، ومن النافذة التي تظهر بعد إضافة كتاب — بنفس الحجم والتفاصيل المضبوطة في الإعدادات.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/award.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>هوية المؤسسة على الملصق</b></td><td valign="middle"><b>شعار واسم المكتبة</b> على كل ملصق بإطار أنيق، مع معلومات دقيقة شبه خفية (microtext). ويتكيّف التصميم تلقائيًا: إن لم يوجد شعار أو اسم، يكبر الباركود ليملأ المساحة بلا فراغ.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/layout.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>مضبوط على ورق A4</b></td><td valign="middle">أبعاد الملصق مضبوطة بالمليمتر على ورق <b>A4</b>، بحجم صغير مثالي للصقه خلف الكتاب دون حجب بياناته، وعدد أعمدة قابل للضبط (3/4/5).</td></tr>
+<tr><td width="31%"><b><img src="https://icongr.am/feather/package.svg?size=64&color=b0894b" width="17" align="center" alt=""> إعارة كاملة</b></td><td>إعارة نسخة الكتاب كاملة عند الحاجة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/layers.svg?size=64&color=b0894b" width="17" align="center" alt=""> اختيار عدة أجزاء</b></td><td>اختيار جزء واحد أو عدة أجزاء متاحة داخل عملية إعارة واحدة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/corner-up-left.svg?size=64&color=b0894b" width="17" align="center" alt=""> إرجاع جزئي</b></td><td>إرجاع جزء أو عدة أجزاء مع إبقاء بقية الأجزاء مسجلة باسم المستعير.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/calendar.svg?size=64&color=b0894b" width="17" align="center" alt=""> تواريخ مستقلة</b></td><td>حفظ تاريخ إرجاع كل جزء على حدة وإغلاق الإعارة بعد اكتمال الإرجاع فقط.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/check-circle.svg?size=64&color=b0894b" width="17" align="center" alt=""> إتاحة مستقلة</b></td><td>احتساب المتاح لكل جزء ومنع إعارة جزء نفدت نسخه.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/clock.svg?size=64&color=b0894b" width="17" align="center" alt=""> مدة قابلة للضبط</b></td><td>7 أو 14 أو 30 أو 60 أو 90 يومًا، أو مدة مخصصة، مع حساب الاستحقاق تلقائيًا.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/user.svg?size=64&color=b0894b" width="17" align="center" alt=""> بيانات المستعير</b></td><td>اسم المستعير، وسيلة التواصل، وملاحظة مستقلة لكل إعارة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/alert-triangle.svg?size=64&color=b0894b" width="17" align="center" alt=""> تنبيهات ذكية</b></td><td>تمييز المتأخر والمستحق قريبًا، وترتيب الحالات الأهم أولًا.</td></tr>
 </table>
 
-### <img src="https://icongr.am/feather/repeat.svg?size=54&color=b0894b" width="18" align="center" alt=""> نظام الإعارة
-
+### <img src="https://icongr.am/feather/bar-chart-2.svg?size=64&color=b0894b" width="18" align="center" alt=""> لوحة المعلومات والاستدعاءات
 <table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/book.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>إعارة مرنة</b></td><td valign="middle">نسخة <b>كاملة</b> أو <b>جزء محدد برقمه</b> للكتب متعددة الأجزاء، وتُحسب الإتاحة لكل جزء على حدة.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/calendar.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>مدة إعارة قابلة للضبط</b></td><td valign="middle">حدّد مدة الإعارة الافتراضية (7/14/30/60/90 أو مخصّصة)؛ يُحسب الاستحقاق تلقائياً وتجاوزه يُعدّ تأخيراً. يمكن <b>تطبيق المدة الجديدة على الإعارات القائمة أيضاً</b> أو على الجديدة فقط.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/phone.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>بيانات المستعير</b></td><td valign="middle">وسيلة تواصل للمستعير وملاحظة قصيرة لكل إعارة.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/bell.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>تنبيهات وترتيب ذكي</b></td><td valign="middle">«متأخر» و«يستحق خلال N يوم»، مع <b>ظهور المتأخرين أولاً</b> في القوائم والتصدير.</td></tr>
+<tr><td width="31%"><b><img src="https://icongr.am/feather/bar-chart-2.svg?size=64&color=b0894b" width="17" align="center" alt=""> نظرة فورية</b></td><td>إجمالي العناوين، والنسخ المتاحة والمعارة، والمستعيرون، والمتأخرات، والمستحق قريبًا.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/pie-chart.svg?size=64&color=b0894b" width="17" align="center" alt=""> جودة البيانات</b></td><td>نسبة اكتمال بيانات الجرد، وعدد الكتب متعددة الأجزاء، وقيمة الكتب المسعّرة، وأعلى كتاب سعرًا.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/compass.svg?size=64&color=b0894b" width="17" align="center" alt=""> استدعاءات متعددة</b></td><td>حسب المستعيرين، ودور النشر، والمؤلفين، والمجالات، والسنوات، والرفوف، والسلاسل، وحالة النسخ.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/file-text.svg?size=64&color=b0894b" width="17" align="center" alt=""> تقارير مجمعة</b></td><td>عرض كل مستعير وكتبه، أو كل تصنيف والقيم والكتب التابعة له، مع إمكان التصدير.</td></tr>
 </table>
 
-### <img src="https://icongr.am/feather/bar-chart-2.svg?size=54&color=b0894b" width="18" align="center" alt=""> لوحة المعلومات والتقارير
-
+### <img src="https://icongr.am/feather/monitor.svg?size=64&color=b0894b" width="18" align="center" alt=""> تجربة الاستخدام
 <table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/trending-up.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>لوحة معلومات ذكية</b></td><td valign="middle">الإعارات المتأخرة، المستحقة خلال 7 أيام، نسبة اكتمال بيانات الجرد، قيمة الكتب المسعّرة، أعلى كتاب سعرًا، وعدد العناوين متعددة الأجزاء.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/compass.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>استدعاءات قابلة للفرز</b></td><td valign="middle">حسب أي عمود، عبر ثمانية أبعاد: المستعيرون، دور النشر، المؤلفون، المجالات، سنوات النشر، <b>الرفوف، السلاسل، وحالة النسخ</b>.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/download.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>تصدير PDF مجمّع</b></td><td valign="middle"><b>المستعيرون</b>: كل اسم يليه كتبه بحوزته. و<b>أي تصنيف</b> (دار نشر، مؤلف…): إمّا جدول ترتيب فقط أو <b>مجمّعاً مع كتب كل قيمة</b> — الخيار لك.</td></tr>
-</table>
-
-### <img src="https://icongr.am/feather/shield.svg?size=54&color=b0894b" width="18" align="center" alt=""> التخزين والأمان
-
-<table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/settings.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>تخزين أخف وأسرع</b></td><td valign="middle">مع بقاء تصدير JSON منسّقًا ومقروءًا، وكتابة آمنة لا تُتلف الملف عند انقطاعها.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/save.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>نسخ أمان تلقائية</b></td><td valign="middle">قبل الاستيراد وقبل حذف كل البيانات، وزر نسخة فورية (يُحتفظ بأحدث 20 نسخة).</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/activity.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>فحص سلامة البيانات</b></td><td valign="middle">يكشف المتأخرات، الحقول الناقصة، الأرقام المكررة، والعناوين المكررة المحتملة.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/folder.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>وصول مباشر للبيانات</b></td><td valign="middle">زر لفتح مجلد بيانات البرنامج مباشرةً.</td></tr>
-</table>
-
-### <img src="https://icongr.am/feather/upload.svg?size=54&color=b0894b" width="18" align="center" alt=""> التصدير · <img src="https://icongr.am/feather/lock.svg?size=54&color=b0894b" width="18" align="center" alt=""> الخصوصية
-
-<table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/upload.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>صيغ متعددة</b></td><td valign="middle">تصدير المكتبة إلى <b>JSON، CSV، TXT، وPDF</b>، وتصدير <b>المستعيرين</b> و<b>المتأخرين فقط</b> كملفات PDF، بالإضافة إلى CSV للمتأخرات.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/lock.svg?size=96&color=b0894b" width="30" align="absmiddle" alt=""> <b>خصوصية كاملة</b></td><td valign="middle">يعمل محليًا ولا يرسل بيانات مكتبتك إلى أي خادم خارجي، وبلا تتبّع أو إعلانات.</td></tr>
+<tr><td width="31%"><b><img src="https://icongr.am/feather/moon.svg?size=64&color=b0894b" width="17" align="center" alt=""> نهاري وليلي</b></td><td>ثيمان هادئان يحافظان على التباين والهوية البنية والذهبية دون أبيض ناصع أو أسود حاد.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/columns.svg?size=64&color=b0894b" width="17" align="center" alt=""> قائمة قابلة للطي</b></td><td>قائمة جانبية منكمشة أو موسعة، مع اختصار <code>Ctrl + B</code> وحفظ الحالة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/zap.svg?size=64&color=b0894b" width="17" align="center" alt=""> انتقالات محسوبة</b></td><td>حركات قصيرة ومهنية للنوافذ والتنقل دون إبطاء العمل.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/user-check.svg?size=64&color=b0894b" width="17" align="center" alt=""> قابلية وصول</b></td><td>حالات تركيز واضحة، وتنقل بلوحة المفاتيح، واحترام إعداد تقليل الحركة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/monitor.svg?size=64&color=b0894b" width="17" align="center" alt=""> تصميم متجاوب</b></td><td>تحسين التوزيع على المقاسات المكتبية المختلفة ومنع خروج العناصر من النوافذ.</td></tr>
 </table>
 
 ---
 
-## ✦ التحميل
+<a id="data-integrity"></a>
 
-حمّل آخر إصدار من صفحة الإصدارات الرسمية:
+## <img src="https://icongr.am/feather/shield.svg?size=64&color=b0894b" width="19" align="center" alt=""> سلامة البيانات والإصلاح الآمن
 
-<div align="center" dir="ltr">
+صُممت أداة سلامة البيانات لتكون **أداة تشخيص وإصلاح محافظة**، لا أداة حذف تلقائي.
 
-[![Download Raff](https://img.shields.io/badge/⬇_Download_Latest_Release-GitHub-8B5E34?style=for-the-badge&labelColor=3E2C1C)](https://github.com/Hzifa33/raff/releases/latest)
+### ما الذي تفحصه؟
 
-</div>
+- معرّفات الكتب والإعارات المفقودة أو المكررة.
+- الأرقام المرجعية الناقصة أو المكررة فعليًا بعد توحيد التنسيق.
+- عدد النسخ، وعدد الأجزاء، والإعارات المفتوحة مقارنة بالمخزون.
+- الأجزاء المعارة ومدى توافقها مع عدد أجزاء الكتاب.
+- تواريخ الإعارة والاستحقاق والإرجاع.
+- السجلات ذات البيانات الناقصة أو غير المتسقة.
+- العناوين المتشابهة المحتملة بصفتها **تنبيهًا للمراجعة** لا دليلًا قاطعًا على التكرار.
 
-**بعد التحميل، في ثلاث خطوات:**
+### كيف تتم مقارنة الأرقام المرجعية؟
 
-1. شغّل ملف التثبيت أو فك ضغط النسخة المحمولة إن وُجدت.
-2. افتح برنامج رَفّ.
-3. أضف أول كتاب أو استورد نسخة احتياطية.
-
----
-
-## ✦ متطلبات التشغيل
-
-رَفّ خفيف ولا يحتاج جهازًا قويًا؛ يعمل بسلاسة على أجهزة المكاتب العادية.
-
-<table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/monitor.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>نظام التشغيل</b></td><td valign="middle"><b>Windows 10</b> أو أحدث (64-بت). تتوفّر أيضًا نسخة <b>Linux</b> بصيغة AppImage.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/cpu.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>المعالج والذاكرة</b></td><td valign="middle">أي معالج 64-بت حديث، و<b>2 جيجابايت RAM</b> على الأقل (يُفضّل 4 جيجابايت للمكتبات الكبيرة).</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/hard-drive.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>مساحة القرص</b></td><td valign="middle">نحو <b>250 ميجابايت</b> للبرنامج، إضافة إلى مساحة صغيرة تنمو ببطء مع بيانات المكتبة والنسخ الاحتياطية.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/wifi-off.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>الإنترنت</b></td><td valign="middle"><b>غير مطلوب إطلاقًا.</b> كل الميزات — بما فيها توليد الباركود والطباعة — تعمل بلا اتصال.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/maximize.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>الماسح والطابعة</b></td><td valign="middle"><b>اختياريان.</b> أي قارئ باركود USB (يعمل كلوحة مفاتيح) دون تعريفات، وأي طابعة عادية لورق A4.</td></tr>
-</table>
-
----
-
-## ✦ الأمان والتحقّق
-
-<details open>
-<summary><b><img src="https://icongr.am/feather/lock.svg?size=45&color=b0894b" width="15" align="center" alt=""> التحقّق من سلامة الملف (SHA256)</b></summary>
-
-<br>
-
-بعد بناء نسخة **1.0.0**، احسب قيمة **SHA256** لملف الإصدار وضعها هنا لينشرها المستخدمون ويتحققوا بها من سلامة الملف. تتغيّر هذه القيمة مع كل إصدار جديد، لذا احرص على تحديثها قبل النشر.
-
-للتحقق على **Windows PowerShell**، افتح PowerShell داخل مجلد التحميل ونفّذ:
-
-```powershell
-certutil -hashfile Raf_Portable_1.0.0.zip SHA256
+```text
+raf-0001  ≠  raf-1001
 ```
 
-قارن الناتج بالقيمة المنشورة رسميًا لهذا الإصدار؛ يجب أن يتطابقا حرفًا بحرف.
+أما الاختلافات التنسيقية التي تمثل الرقم نفسه فيمكن توحيدها، مثل اختلاف حالة الأحرف، أو نوع الشرطة، أو شكل الأرقام العربية والفارسية واللاتينية.
+
+### ماذا يفعل «الإصلاح الآمن»؟
+
+1. ينشئ نسخة احتياطية قبل أي تعديل.
+2. يصلح المشكلات الحتمية والواضحة فقط.
+3. يحافظ على أقدم سجل عند وجود تكرار حقيقي، ويولّد رقمًا متاحًا للسجل الآخر.
+4. لا يحذف كتابًا أو إعارة بصمت.
+5. يعرض نتيجة الإصلاح والتغييرات التي أُجريت.
+
+> **مهم:** الإعارة المتأخرة حالة تشغيلية تحتاج متابعة، لكنها لا تعني أن ملف البيانات تالف.
+
+---
+
+<a id="barcode"></a>
+
+## <img src="https://icongr.am/feather/maximize.svg?size=64&color=b0894b" width="19" align="center" alt=""> الباركود والمسح الضوئي والطباعة
+
+<table>
+<tr><td width="31%"><b><img src="https://icongr.am/feather/bar-chart.svg?size=64&color=b0894b" width="17" align="center" alt=""> باركود Code 128</b></td><td>يُولد محليًا من الرقم المرجعي لكل كتاب دون خدمة خارجية.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/maximize.svg?size=64&color=b0894b" width="17" align="center" alt=""> قارئ USB</b></td><td>يعمل كلوحة مفاتيح ويمكنه استدعاء بيانات الكتاب من أي شاشة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/zap.svg?size=64&color=b0894b" width="17" align="center" alt=""> نتيجة فورية</b></td><td>إظهار العنوان، والمؤلف، والرقم، والسعر، والأجزاء، والإتاحة، والإعارات المفتوحة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/printer.svg?size=64&color=b0894b" width="17" align="center" alt=""> طباعة مباشرة</b></td><td>طباعة ملصق الكتاب من نافذة التفاصيل أو بعد الإضافة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/file-text.svg?size=64&color=b0894b" width="17" align="center" alt=""> حفظ PDF</b></td><td>ملصق مفرد أو دفعات حسب الرف أو المجال أو السلسلة أو نطاق الأرقام المرجعية.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/tag.svg?size=64&color=b0894b" width="17" align="center" alt=""> هوية المكتبة</b></td><td>إضافة اسم المؤسسة وشعارها إلى الملصق مع ضبط المقاسات على ورق A4.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/layout.svg?size=64&color=b0894b" width="17" align="center" alt=""> إعدادات مرنة</b></td><td>عدد أعمدة الملصقات وحجمها وتفاصيلها من قسم «الإعدادات والنسخ».</td></tr>
+</table>
+
+---
+
+<a id="download"></a>
+
+## <img src="https://icongr.am/feather/download.svg?size=64&color=b0894b" width="19" align="center" alt=""> التحميل والتشغيل
+
+<div align="center" dir="rtl">
+
+### حمّل النسخة الرسمية فقط من GitHub Releases
+
+[![Download Latest Release](https://img.shields.io/badge/تحميل_رَفّ_2.7.0-GitHub_Releases-B0894B?style=for-the-badge&labelColor=3E2C1C)](https://github.com/Hzifa33/raff/releases/latest)
+
+</div>
+
+### <img src="https://icongr.am/feather/play-circle.svg?size=64&color=b0894b" width="18" align="center" alt=""> البدء في ثلاث خطوات
+1. حمّل ملف التثبيت أو النسخة المحمولة من صفحة الإصدارات.
+2. افتح رَفّ وأضف أول كتاب، أو استورد نسخة احتياطية سابقة.
+3. اضبط اسم المكتبة، ومدة الإعارة، وخيارات الملصقات من **الإعدادات والنسخ**.
+
+### متطلبات التشغيل
+
+<table>
+<tr><td width="31%"><b><img src="https://icongr.am/feather/monitor.svg?size=64&color=b0894b" width="17" align="center" alt=""> نظام التشغيل</b></td><td><b>Windows 10 أو Windows 11</b>، بنواة 64-بت.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/cpu.svg?size=64&color=b0894b" width="17" align="center" alt=""> الذاكرة</b></td><td>2 جيجابايت RAM على الأقل، ويُفضّل 4 جيجابايت أو أكثر للمكتبات الكبيرة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/hard-drive.svg?size=64&color=b0894b" width="17" align="center" alt=""> مساحة القرص</b></td><td>نحو 250 ميجابايت للبرنامج، إضافة إلى مساحة صغيرة للبيانات والنسخ الاحتياطية.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/globe.svg?size=64&color=b0894b" width="17" align="center" alt=""> الإنترنت</b></td><td>غير مطلوب للتشغيل أو الفهرسة أو البحث أو الباركود أو الطباعة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/maximize.svg?size=64&color=b0894b" width="17" align="center" alt=""> قارئ الباركود</b></td><td>اختياري؛ يعمل أي قارئ USB يتصرف كلوحة مفاتيح.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/printer.svg?size=64&color=b0894b" width="17" align="center" alt=""> الطابعة</b></td><td>اختيارية؛ تكفي طابعة مكتبية عادية تدعم ورق A4.</td></tr>
+</table>
+
+### <img src="https://icongr.am/feather/command.svg?size=64&color=b0894b" width="18" align="center" alt=""> اختصارات مفيدة
+<table>
+<tr><td><code>Ctrl + K</code></td><td>الانتقال إلى البحث السريع.</td></tr>
+<tr><td><code>Ctrl + B</code></td><td>طي القائمة الجانبية أو توسيعها.</td></tr>
+<tr><td><code>Ctrl + Shift + L</code></td><td>التبديل بين الوضع النهاري والليلي.</td></tr>
+</table>
+
+### <img src="https://icongr.am/feather/lock.svg?size=64&color=b0894b" width="18" align="center" alt=""> التحقق من سلامة ملف الإصدار
+<details open>
+<summary><b>حساب SHA256 على Windows PowerShell</b></summary>
+
+<br>
+
+```powershell
+Get-FileHash ".\اسم-ملف-الإصدار.exe" -Algorithm SHA256
+```
+
+أو باستخدام الأداة المدمجة الأخرى:
+
+```powershell
+certutil -hashfile ".\اسم-ملف-الإصدار.exe" SHA256
+```
+
+قارن القيمة الناتجة بملف <code>.sha256</code> المنشور مع الإصدار نفسه على GitHub. يجب أن يتطابق النص كاملًا.
 
 </details>
 
 <details>
-<summary><b><img src="https://icongr.am/feather/alert-triangle.svg?size=45&color=b0894b" width="15" align="center" alt=""> ملاحظة حول Windows SmartScreen</b></summary>
+<summary><b><img src="https://icongr.am/feather/alert-triangle.svg?size=64&color=b0894b" width="17" align="center" alt=""> ملاحظة حول Windows SmartScreen</b></summary>
 
 <br>
 
-قد يعرض Windows رسالة مثل **Unknown Publisher** لأن البرنامج جديد وغير موقّع بشهادة Code Signing مدفوعة.
+قد يعرض Windows تنبيه **Unknown Publisher** إذا لم يكن الإصدار موقّعًا بشهادة Code Signing مدفوعة. لا تعتمد على التنبيه وحده للحكم على الملف:
 
-هذا لا يعني بالضرورة أن البرنامج ضار. لتقليل المخاطر:
-
-- ✅ حمّل البرنامج فقط من GitHub Releases الرسمي.
-- ✅ تحقق من SHA256 قبل التشغيل.
-- ⛔ لا تعتمد على نسخ مرسلة من مصادر مجهولة.
+- حمّل من صفحة GitHub Releases الرسمية فقط.
+- قارن قيمة SHA256.
+- لا تستخدم نسخًا معاد رفعها من مصادر مجهولة.
 
 </details>
 
 ---
 
-## ✦ الخصوصية ومكان البيانات
+<a id="privacy"></a>
 
-<div align="center">
+## <img src="https://icongr.am/feather/lock.svg?size=64&color=b0894b" width="19" align="center" alt=""> الخصوصية والنسخ الاحتياطية
 
-> **رَفٌّ يعمل محليًا على جهازك — بياناتك تبقى عندك.**
+<div align="center" dir="rtl">
+
+> ### بيانات مكتبتك تبقى على جهازك.
 
 </div>
 
-**لا** يقوم البرنامج بـ:
+رَفّ لا يقوم بـ:
 
-- ❌ جمع بيانات المستخدم.
-- ❌ رفع بيانات المكتبة إلى الإنترنت.
-- ❌ تتبّع الاستخدام.
-- ❌ عرض الإعلانات.
-- ❌ إرسال الكتب أو أسماء المؤلفين إلى خوادم خارجية.
+- إنشاء حساب مستخدم أو إجبارك على تسجيل الدخول.
+- رفع بيانات الكتب أو المستعيرين إلى خادم خارجي.
+- تتبع الاستخدام أو جمع التحليلات.
+- عرض الإعلانات.
+- بيع البيانات أو مشاركتها.
 
-تُحفظ بيانات المكتبة في ملف محلي داخل مجلد بيانات التطبيق الخاص بالمستخدم، باسم:
+### مكان البيانات
+
+تُحفظ بيانات المكتبة في ملف محلي داخل مجلد بيانات التطبيق:
 
 ```text
 raff-library.json
 ```
 
-وتُحفظ النسخ الاحتياطية بجانبه في مجلد:
+وتُحفظ النسخ الاحتياطية داخل:
 
 ```text
-backups
+backups/
 ```
 
-يمكنك الوصول إلى المجلد مباشرةً من زر **«فتح مجلد بيانات البرنامج»** داخل الإعدادات.
+يمكن الوصول إلى المجلد مباشرة من زر **فتح مجلد بيانات البرنامج** داخل قسم **الإعدادات والنسخ**.
+
+### النسخ الاحتياطية
+
+- نسخة تلقائية قبل الاستيراد.
+- نسخة تلقائية قبل العمليات الحساسة.
+- نسخة تلقائية قبل الإصلاح الآمن لسلامة البيانات.
+- إنشاء نسخة فورية يدويًا.
+- الاحتفاظ بأحدث النسخ وفق سياسة التطبيق لتجنب تراكم الملفات بلا حد.
+- استيراد نسخة قديمة مع ترقية بنية البيانات تلقائيًا.
 
 ---
 
-## ✦ المعمارية
+<a id="architecture"></a>
 
-رَفّ تطبيق سطح مكتب مبني على **Electron**، مصمَّم عمدًا ليكون **بلا اعتماديات أصلية (native)** — فلا حاجة لإعادة بناء وحدات لكل نظام، وهو سبب شائع لتعطّل المثبّتات.
+## <img src="https://icongr.am/feather/layers.svg?size=64&color=b0894b" width="19" align="center" alt=""> المعمارية
+
+رَفّ تطبيق سطح مكتب مبني على **Electron**، بواجهة عربية من **HTML وCSS وJavaScript**، ومخزن بيانات محلي خفيف دون حاجة إلى خادم أو قاعدة بيانات خارجية.
 
 <table>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/layers.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>الطبقة التقنية</b></td><td valign="middle"><b>Electron 31</b> (Chromium 126 + Node.js 20)، وواجهة بـ <b>HTML/CSS/JavaScript</b> خالص دون أُطر ثقيلة — أخف وأسرع في الإقلاع.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/shield.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>عزل العمليات</b></td><td valign="middle">فصل صارم بين العملية الرئيسية والواجهة مع <b>Context Isolation</b>، وجسر <code>preload</code> آمن يكشف واجهة محدودة فقط — لا وصول مباشر لنظام الملفات من الواجهة.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/database.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>مخزن بيانات محلي</b></td><td valign="middle">ملف <b>JSON</b> واحد بلا قاعدة بيانات خارجية، مع <b>كتابة ذرّية</b> لا تُتلف الملف عند الانقطاع، و<b>ترقية تلقائية</b> للمخطّط تحافظ على البيانات القديمة.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/zap.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>أداء ثابت</b></td><td valign="middle"><b>فهرسة في الذاكرة</b> للبحث الفوري، و<b>عرض افتراضي (virtual list)</b> يرسم الصفوف المرئية فقط — فيبقى الجدول سريعًا مع آلاف العناوين.</td></tr>
-<tr><td width="32%" valign="middle"><img src="https://icongr.am/feather/lock.svg?size=96&color=b0894b" width="28" align="absmiddle" alt=""> <b>حدود أمنية</b></td><td valign="middle"><b>سياسة أمان محتوى (CSP)</b> صارمة، والباركود يُولَّد محليًا بلا خدمات خارجية، والشعار المرفوع يُتحقَّق منه ليكون صورة فقط (يرفض أي حقن).</td></tr>
+<tr><td width="31%"><b><img src="https://icongr.am/feather/settings.svg?size=64&color=b0894b" width="17" align="center" alt=""> Electron 31</b></td><td>تطبيق Windows حديث يجمع Chromium وNode.js في حزمة مكتبية واحدة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/layers.svg?size=64&color=b0894b" width="17" align="center" alt=""> واجهة خفيفة</b></td><td>HTML وCSS وJavaScript خالص، مع نظام تصميم دلالي مستوحى من shadcn/ui دون تحويل المشروع إلى إطار ثقيل.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/lock.svg?size=64&color=b0894b" width="17" align="center" alt=""> عزل العمليات</b></td><td><code>contextIsolation</code> وجسر <code>preload</code> محدود بدل إتاحة نظام الملفات مباشرة للواجهة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/database.svg?size=64&color=b0894b" width="17" align="center" alt=""> تخزين محلي</b></td><td>ملف JSON قابل للنقل والنسخ، مع كتابة آمنة وترقية تلقائية للمخطط.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/zap.svg?size=64&color=b0894b" width="17" align="center" alt=""> أداء عملي</b></td><td>فهرسة في الذاكرة، وتقليل عمليات إعادة الرسم، وعرض منظم للبيانات الكبيرة.</td></tr>
+<tr><td><b><img src="https://icongr.am/feather/shield.svg?size=64&color=b0894b" width="17" align="center" alt=""> حدود أمنية</b></td><td>سياسة أمان محتوى، والتحقق من الملفات والصور، وتوليد الباركود محليًا.</td></tr>
 </table>
 
-<div align="center" dir="rtl">
-<sub>مبدأ التصميم: كل ميزة تعمل محليًا وبلا إنترنت، والبيانات ملك المستخدم وحده.</sub>
-</div>
+### تدفق البيانات
+
+```text
+واجهة المستخدم
+     │
+     v
+Preload API آمن
+     │
+     v
+Electron Main Process
+     │
+     ├── قراءة وكتابة ذرية
+     ├── نسخ احتياطية
+     ├── استيراد وتصدير
+     └── طباعة وحفظ PDF
+     │
+     v
+raff-library.json
+```
 
 ---
 
-## ✦ للمطوّرين
+<a id="developers"></a>
 
-المشروع مبني باستخدام **Electron** و **JavaScript**، بمخزن بيانات محلي بصيغة JSON (بلا اعتماديات أصلية).
+## <img src="https://icongr.am/feather/code.svg?size=64&color=b0894b" width="19" align="center" alt=""> للمطوّرين
 
-<table>
-<tr>
-<td width="50%" valign="top">
-
-**<img src="https://icongr.am/feather/play.svg?size=45&color=b0894b" width="15" align="center" alt=""> تشغيل المشروع محليًا**
+### تشغيل المشروع محليًا
 
 ```bash
+git clone https://github.com/Hzifa33/raff.git
+cd raff
 npm install
 npm start
 ```
 
-</td>
-<td width="50%" valign="top">
-
-**<img src="https://icongr.am/feather/tool.svg?size=45&color=b0894b" width="15" align="center" alt=""> بناء نسخة Windows**
+### بناء نسخة Windows
 
 ```bash
 npm run dist:win
 ```
 
-<sub>تُخرَج ملفات البناء داخل مجلد <code>release</code>.</sub>
+تظهر ملفات البناء داخل مجلد:
 
-</td>
-</tr>
-</table>
+```text
+release/
+```
 
-### <img src="https://icongr.am/feather/folder.svg?size=54&color=b0894b" width="18" align="center" alt=""> بنية المشروع
+### بنية المشروع
 
 <div dir="ltr">
 
 ```text
-📁 raff/
-├── 📄 main.js
-├── 📄 preload.js
-├── 📁 src/
-│   ├── 📄 index.html
-│   ├── 📁 css/
-│   └── 📁 js/
-├── 📁 assets/
-└── 📁 .github/workflows/
+raff/
+├── main.js
+├── preload.js
+├── package.json
+├── src/
+│   ├── index.html
+│   ├── css/
+│   └── js/
+├── assets/
+├── tests/
+└── .github/
+    └── workflows/
 ```
 
 </div>
 
 <table>
-<tr><td><code>main.js</code></td><td>نقطة تشغيل تطبيق Electron ومعالجات النظام</td></tr>
-<tr><td><code>preload.js</code></td><td>جسر آمن بين الواجهة وعمليات النظام</td></tr>
-<tr><td><code>src/index.html</code></td><td>واجهة التطبيق</td></tr>
-<tr><td><code>src/css/</code></td><td>التصميم والخطوط والألوان</td></tr>
-<tr><td><code>src/js/</code></td><td>منطق الواجهة والفهرسة والبحث والتقارير والإعارة والباركود والمسح</td></tr>
-<tr><td><code>assets/</code></td><td>الشعار والأيقونات</td></tr>
-<tr><td><code>.github/workflows/</code></td><td>بناء نسخة Windows تلقائيًا عبر GitHub Actions</td></tr>
+<tr><td><code>main.js</code></td><td>تشغيل Electron ومعالجات الملفات والطباعة والنسخ الاحتياطية.</td></tr>
+<tr><td><code>preload.js</code></td><td>واجهة آمنة بين العملية الرئيسية وواجهة المستخدم.</td></tr>
+<tr><td><code>src/index.html</code></td><td>البنية الأساسية للواجهة العربية.</td></tr>
+<tr><td><code>src/css/</code></td><td>نظام التصميم، والثيمان، والاستجابة، والحركات.</td></tr>
+<tr><td><code>src/js/</code></td><td>الفهرسة، والبحث، والإعارة، والأجزاء، والتقارير، والباركود، وسلامة البيانات.</td></tr>
+<tr><td><code>assets/</code></td><td>الشعار، والأيقونات، والخطوط، والموارد البصرية.</td></tr>
+<tr><td><code>tests/</code></td><td>اختبارات المنطق الحساس مثل الأرقام المرجعية وسلامة البيانات.</td></tr>
+<tr><td><code>.github/workflows/</code></td><td>بناء إصدارات Windows آليًا عبر GitHub Actions.</td></tr>
 </table>
 
----
+### مبادئ المساهمة
 
-## ✦ الإبلاغ عن مشكلة
-
-عند فتح Issue، حاول ذكر:
-
-- ▸ إصدار البرنامج
-- ▸ نظام التشغيل
-- ▸ وصف المشكلة
-- ▸ خطوات تكرار المشكلة
-- ▸ صورة من الخطأ إن وُجدت
+- حافظ على دعم العربية واتجاه RTL في كل تغيير.
+- لا تضف اتصالًا خارجيًا أو تتبعًا دون ضرورة وموافقة واضحة.
+- أضف اختبارًا لأي تعديل يمس الأرقام المرجعية أو الإعارات أو إصلاح البيانات.
+- لا تُصلح بيانات المستخدم بطريقة مدمرة أو صامتة.
+- اختبر الواجهة في الوضعين النهاري والليلي، ومع القائمة المطوية والموسعة.
+- حافظ على التوافق مع ملفات البيانات القديمة.
 
 ---
 
-## ✦ الترخيص
+## <img src="https://icongr.am/feather/alert-circle.svg?size=64&color=b0894b" width="19" align="center" alt=""> الإبلاغ عن مشكلة
 
-هذا المشروع مرخّص برخصة **MIT**، ومقدَّم بروح خيرية لخدمة المكتبات ومبادرات المعرفة.
+افتح Issue واضحًا يتضمن:
 
-</div>
-
-<br>
+- إصدار رَفّ.
+- إصدار Windows.
+- وصف المشكلة والنتيجة المتوقعة.
+- خطوات إعادة ظهور المشكلة.
+- لقطة شاشة أو سجل الخطأ إن وجد.
+- نسخة بيانات منزوعة المعلومات الحساسة عند ارتباط الخطأ بسلامة البيانات.
 
 <div align="center" dir="rtl">
 
-### <img src="https://icongr.am/feather/user.svg?size=54&color=b0894b" width="18" align="center" alt=""> المطوّر
+[![Open an Issue](https://img.shields.io/badge/فتح_Issue_جديدة-GitHub-6F4E37?style=for-the-badge&logo=github&logoColor=white&labelColor=2A1E17)](https://github.com/Hzifa33/raff/issues/new)
 
-صُنع بواسطة **Hzifa33**
+</div>
 
-[![Personal Website](https://img.shields.io/badge/Personal_Website-Hzifa33.github.io-8B5E34?style=for-the-badge&logo=github&logoColor=white&labelColor=3E2C1C)](https://Hzifa33.github.io)
+---
+
+<a id="faq"></a>
+
+## <img src="https://icongr.am/feather/help-circle.svg?size=64&color=b0894b" width="19" align="center" alt=""> الأسئلة الشائعة
+
+<details>
+<summary><b>هل يحتاج رَفّ إلى الإنترنت؟</b></summary>
+
+<br>
+
+لا. الفهرسة، والبحث، والإعارة، والباركود، والتقارير، والطباعة، والنسخ الاحتياطية تعمل محليًا.
+
+</details>
+
+<details>
+<summary><b>هل يمكن إعارة أكثر من جزء من الكتاب نفسه؟</b></summary>
+
+<br>
+
+نعم. يمكن اختيار جزء واحد أو عدة أجزاء في إعارة واحدة، ثم إرجاع جزء أو عدة أجزاء مع بقاء البقية مسجلة على المستعير.
+
+</details>
+
+<details>
+<summary><b>هل raf-0001 وraf-1001 رقمان متكرران؟</b></summary>
+
+<br>
+
+لا. هما رقمان مرجعيان مختلفان. يقارن رَفّ الرقم كاملًا، ويُوحّد فقط الاختلافات التنسيقية التي تمثل القيمة نفسها.
+
+</details>
+
+<details>
+<summary><b>هل يفقد البرنامج بياناتي عند التحديث؟</b></summary>
+
+<br>
+
+صُممت ترقية المخطط للحفاظ على البيانات القديمة، وتُنشأ نسخ احتياطية قبل العمليات الحساسة. ومع ذلك يُنصح دائمًا بالاحتفاظ بنسخة خارجية دورية.
+
+</details>
+
+<details>
+<summary><b>أين أجد النسخ الاحتياطية والإعدادات؟</b></summary>
+
+<br>
+
+داخل تبويب **الإعدادات والنسخ**، ويمكن فتح مجلد البيانات المحلي مباشرة من داخله.
+
+</details>
+
+<details>
+<summary><b>هل البرنامج مناسب لمكتبة كبيرة؟</b></summary>
+
+<br>
+
+نعم؛ صُممت عمليات البحث والسجل الكامل والعرض على دفعات لتبقى عملية مع آلاف العناوين، مع اختلاف الأداء حسب مواصفات الجهاز وحجم البيانات.
+
+</details>
+
+---
+
+<a id="license"></a>
+
+## <img src="https://icongr.am/feather/award.svg?size=64&color=b0894b" width="19" align="center" alt=""> الترخيص والمطوّر
+
+هذا المشروع مرخّص برخصة **MIT**، ومقدّم لخدمة المكتبات ومبادرات المعرفة.
+
+<div align="center" dir="rtl">
+
+### <img src="https://icongr.am/feather/code.svg?size=64&color=b0894b" width="18" align="center" alt=""> تطوير
+## **Hzifa33**
+
+[![Personal Website](https://img.shields.io/badge/الموقع_الشخصي-Hzifa33.github.io-B0894B?style=for-the-badge&logo=github&logoColor=white&labelColor=3E2C1C)](https://Hzifa33.github.io)
 
 <br>
 
@@ -386,14 +604,22 @@ npm run dist:win
 
 <em>المعرفة تستحق نظامًا يحفظها،<br>والكتاب الذي لا يُعثَر عليه كأنه غير موجود.</em>
 
-<b>رَفٌّ</b> جاء ليجعل لكل كتاب مكانًا،<br>ولكل باحث طريقًا أسرع إلى المعرفة.
-
 <br>
 
-<sub>صُنع بعناية · يعمل محليًا · مفتوح المصدر برخصة MIT</sub>
+<b>رَفّ</b> يجعل لكل كتاب مكانًا، ولكل باحث طريقًا أسرع إلى المعرفة.
 
-<br>
+<br><br>
 
-<img src="https://icongr.am/feather/star.svg?size=48&color=b0894b" width="16" align="center" alt=""> إن أعجبك المشروع، لا تنسَ إضافة نجمة على GitHub
+<sub>يعمل محليًا · يحترم الخصوصية · مفتوح المصدر برخصة MIT</sub>
+
+<br><br>
+
+<img src="https://icongr.am/feather/star.svg?size=64&color=b0894b" width="17" align="center" alt=""> إن أعجبك المشروع، ادعمه بنجمة على GitHub.
+
+<br><br>
+
+<a href="#top">العودة إلى الأعلى</a>
+
+</div>
 
 </div>
