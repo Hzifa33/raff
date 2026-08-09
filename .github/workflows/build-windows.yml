@@ -1,0 +1,93 @@
+name: Build Windows Installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Windows ${{ matrix.label }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: x64
+            builder_arch: x64
+          - label: x86
+            builder_arch: ia32
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Sync package version with release tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build ${{ matrix.label }} installer
+        run: npx electron-builder --win nsis --${{ matrix.builder_arch }} --publish never
+
+      - name: Generate SHA-256 checksum
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem release/*.exe | Select-Object -First 1
+          if (-not $exe) { throw "Installer was not produced" }
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($exe.Name)" | Set-Content -Encoding ascii "$($exe.FullName).sha256"
+
+      - name: Upload ${{ matrix.label }} build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: raff-windows-${{ matrix.label }}
+          path: |
+            release/*.exe
+            release/*.sha256
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download x64 installer
+        uses: actions/download-artifact@v4
+        with:
+          name: raff-windows-x64
+          path: release-assets
+
+      - name: Download x86 installer
+        uses: actions/download-artifact@v4
+        with:
+          name: raff-windows-x86
+          path: release-assets
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" release-assets/* --repo "$GITHUB_REPOSITORY" --generate-notes --title "Raff $TAG"
+          fi
