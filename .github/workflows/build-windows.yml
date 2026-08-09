@@ -1,0 +1,253 @@
+name: Build & Publish Windows Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: raff-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-release:
+    name: Prepare release metadata
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version and tag
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            TAG="${GITHUB_REF_NAME}"
+          else
+            VERSION="$(node -p "require('./package.json').version")"
+            TAG="v${VERSION}"
+          fi
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release version: $VERSION" >&2
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Release version: $VERSION"
+          echo "Release tag: $TAG"
+
+  build-windows:
+    name: Build Windows ${{ matrix.label }}
+    needs: prepare-release
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: x64
+            builder_arch: x64
+          - label: x86
+            builder_arch: ia32
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Sync package version with release
+        shell: bash
+        run: npm version "${{ needs.prepare-release.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build ${{ matrix.label }} installer
+        run: npx electron-builder --win nsis --${{ matrix.builder_arch }} --publish never
+
+      - name: Normalize installer filename
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+          RELEASE_ARCH: ${{ matrix.label }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Get-ChildItem release/*.exe | Select-Object -First 1
+          if (-not $exe) { throw "Installer was not produced" }
+
+          $targetName = "Raff-$env:VERSION-Windows-$env:RELEASE_ARCH-Setup.exe"
+          $targetPath = Join-Path $exe.DirectoryName $targetName
+
+          if ($exe.Name -ne $targetName) {
+            Move-Item -Force $exe.FullName $targetPath
+          }
+
+          "INSTALLER_PATH=$targetPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "INSTALLER_NAME=$targetName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Generate SHA-256 checksum
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Test-Path $env:INSTALLER_PATH)) { throw "Installer not found: $env:INSTALLER_PATH" }
+
+          $hash = (Get-FileHash $env:INSTALLER_PATH -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $env:INSTALLER_NAME" | Set-Content -Encoding ascii "$env:INSTALLER_PATH.sha256"
+
+          Write-Host "SHA256 ($env:INSTALLER_NAME): $hash"
+
+      - name: Upload ${{ matrix.label }} build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: raff-windows-${{ matrix.label }}
+          path: |
+            release/Raff-${{ needs.prepare-release.outputs.version }}-Windows-${{ matrix.label }}-Setup.exe
+            release/Raff-${{ needs.prepare-release.outputs.version }}-Windows-${{ matrix.label }}-Setup.exe.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-release:
+    name: Publish as Latest GitHub Release
+    needs:
+      - prepare-release
+      - build-windows
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download x64 installer and checksum
+        uses: actions/download-artifact@v4
+        with:
+          name: raff-windows-x64
+          path: release-assets/x64
+
+      - name: Download x86 installer and checksum
+        uses: actions/download-artifact@v4
+        with:
+          name: raff-windows-x86
+          path: release-assets/x86
+
+      - name: Collect and verify release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets/publish
+
+          find release-assets/x64 release-assets/x86 -type f \
+            \( -name '*.exe' -o -name '*.sha256' \) \
+            -exec cp {} release-assets/publish/ \;
+
+          cd release-assets/publish
+
+          EXE_COUNT="$(find . -maxdepth 1 -type f -name '*.exe' | wc -l | tr -d ' ')"
+          SHA_COUNT="$(find . -maxdepth 1 -type f -name '*.sha256' | wc -l | tr -d ' ')"
+
+          [[ "$EXE_COUNT" == "2" ]] || { echo "Expected 2 installers, found $EXE_COUNT" >&2; exit 1; }
+          [[ "$SHA_COUNT" == "2" ]] || { echo "Expected 2 checksum files, found $SHA_COUNT" >&2; exit 1; }
+
+          for checksum in *.sha256; do
+            sha256sum -c "$checksum"
+          done
+
+          sha256sum *.exe > SHA256SUMS.txt
+
+          echo "Release assets:"
+          ls -lh
+          echo
+          cat SHA256SUMS.txt
+
+      - name: Create or update Latest GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare-release.outputs.tag }}
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+          TARGET_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; replacing its Windows assets."
+            gh release upload "$TAG" release-assets/publish/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+
+            # Remove obsolete Windows assets from an older build of the same
+            # version (for example an old ia32 filename after switching to x86).
+            mapfile -t NEW_ASSETS < <(find release-assets/publish -maxdepth 1 -type f -printf '%f\n' | sort)
+            while IFS= read -r asset; do
+              [[ -n "$asset" ]] || continue
+              case "$asset" in
+                Raff-*-Windows-*-Setup.exe|Raff-*-Windows-*-Setup.exe.sha256|SHA256SUMS.txt)
+                  if ! printf '%s\n' "${NEW_ASSETS[@]}" | grep -Fxq -- "$asset"; then
+                    echo "Removing obsolete release asset: $asset"
+                    gh release delete-asset "$TAG" "$asset" --repo "$GITHUB_REPOSITORY" --yes
+                  fi
+                  ;;
+              esac
+            done < <(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+
+            gh release edit "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Raff $TAG" \
+              --draft=false \
+              --prerelease=false \
+              --latest
+          else
+            echo "Creating release $TAG from $TARGET_SHA."
+            gh release create "$TAG" release-assets/publish/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$TARGET_SHA" \
+              --generate-notes \
+              --title "Raff $TAG" \
+              --latest
+          fi
+
+      - name: Verify published release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare-release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_JSON="$(gh release view "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json tagName,isDraft,isPrerelease,assets)"
+          echo "$RELEASE_JSON" | jq '{tag: .tagName, draft: .isDraft, prerelease: .isPrerelease, assets: [.assets[].name]}'
+
+          for expected in \
+            "Raff-${{ needs.prepare-release.outputs.version }}-Windows-x64-Setup.exe" \
+            "Raff-${{ needs.prepare-release.outputs.version }}-Windows-x64-Setup.exe.sha256" \
+            "Raff-${{ needs.prepare-release.outputs.version }}-Windows-x86-Setup.exe" \
+            "Raff-${{ needs.prepare-release.outputs.version }}-Windows-x86-Setup.exe.sha256" \
+            "SHA256SUMS.txt"; do
+            echo "$RELEASE_JSON" | jq -e --arg name "$expected" '.assets | any(.name == $name)' >/dev/null || {
+              echo "Missing published asset: $expected" >&2
+              exit 1
+            }
+          done
+
+          LATEST_TAG="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 20 --json tagName,isLatest --jq '.[] | select(.isLatest == true) | .tagName' | head -n 1)"
+          if [[ "$LATEST_TAG" != "$TAG" ]]; then
+            echo "Release was published, but $TAG is not marked Latest (latest is: ${LATEST_TAG:-none})." >&2
+            exit 1
+          fi
+          echo "Verified: $TAG is the Latest release."
