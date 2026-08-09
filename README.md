@@ -328,8 +328,8 @@
 لمن يرغب في التحقق من سلامة التنزيل، يمكن مقارنة قيمة <b>SHA256</b> للملف بالقيمة الرسمية المنشورة للإصدار:
 
 ```text
-7ddb9519d607cd86e1df0e64fe0ec26f253c8d12b1fa83a12eb774304774a66b  Raff-3.0.0-Windows-x64-Setup.exe
-b9b2a654f0cb632643426a061c3bd63bb1550bc8ac970521e0568b7e365d91eb  Raff-3.0.0-Windows-x86-Setup.exe
+736b82d4d2c5a46b5c6f7dd8a642d693efa03c3a06b3d712246690b26ea5671f  Raff-3.0.0-Windows-x64-Setup.exe
+0f8250e8dc62cd7f1ec7fd23b570683c40cb5ecf48f0cd9d0d2b47169392be4d  Raff-3.0.0-Windows-x86-Setup.exe
 ```
 
 <table>
