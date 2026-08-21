@@ -13,9 +13,14 @@
 
 <img src="assets/icon.png" alt="شعار رَفّ" width="130">
 
-<h1>رَفٌّ</h1>
+<h1>
+<img src="https://fonts.gstatic.com/s/notosansarabic/v30/SLXgc1nY6Hkvalr-ao6O59ZMaA.woff2" alt="" style="display:none">
+<span>رَفٌّ</span>
+</h1>
 
 <h3>نظام عربي لفهرسة وإدارة المكتبات</h3>
+
+<p><sub>واجهة README مصمّمة بروح عربية حديثة وواضحة.</sub></p>
 
 <p><em>أضف الكتاب مرّة… امسح باركوده… واعثر عليه في ثوانٍ.</em></p>
 
